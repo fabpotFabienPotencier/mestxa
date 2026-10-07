@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+  <title>Mestxa — Simple. Fast. Yours.</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <style>
+    :root {
+      --bg: #000000;
+      --tx: #ffffff;
+      --s2: #8A8A8A;
+      --sf: #111111;
+      --sh: #161616;
+      --ol: #222222;
+      --ol-focus: #333333;
+      --me: #ffffff;
+      --metx: #000000;
+      --th: #141414;
+      --thtx: #ffffff;
+      --brand: #ffffff;
+      --accent: #22c55e;
+      box-sizing: border-box;
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    :root[data-theme="light"] {
+      --bg: #ffffff;
+      --tx: #000000;
+      --s2: #6B6B6B;
+      --sf: #F4F4F4;
+      --sh: #ffffff;
+      --ol: #E5E5E5;
+      --ol-focus: #CCCCCC;
+      --me: #000000;
+      --metx: #ffffff;
+      --th: #F0F0F0;
+      --thtx: #000000;
+      --brand: #000000;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      height: 100%;
+      background: #090909;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      color: var(--tx);
+      overflow: hidden;
+      display: grid;
+      place-items: center;
+    }
+    #phone {
+      position: relative;
+      width: 100%;
+      max-width: 412px;
+      height: 100%;
+      max-height: 890px;
+      background: var(--bg);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 25px 60px -15px rgba(0,0,0,0.8);
+      border: 1px solid var(--ol);
+      border-radius: 40px;
+    }
+    @media (max-width: 500px) {
+      #phone { max-width: 100%; max-height: 100%; border: 0; border-radius: 0; }
+    }
+
+    /* Screen Transition Engine */
+    .screen {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg);
+      transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+      z-index: 1;
+    }
+    .screen.hidden { transform: translateX(100%); pointer-events: none; opacity: 0; }
+    .screen.active { transform: translateX(0); pointer-events: auto; opacity: 1; z-index: 2; }
+    .screen.back { transform: translateX(-25%); opacity: 0.4; }
+
+    /* UI Components */
+    .header {
+      height: 64px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 16px;
+      flex: none;
+      background: var(--bg);
+    }
+    .header h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; flex: 1; }
+    .header h2 { font-size: 19px; font-weight: 600; flex: 1; letter-spacing: -0.01em; }
+    .page { flex: 1; overflow-y: auto; overflow-x: hidden; position: relative; scrollbar-width: none; }
+    .page::-webkit-scrollbar { display: none; }
+
+    button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+    .icon-btn {
+      width: 40px;
+      height: 40px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      flex: none;
+      transition: background 0.15s;
+    }
+    .icon-btn:active { background: var(--sf); }
+
+    /* Buttons */
+    .btn-primary {
+      width: 100%;
+      height: 54px;
+      border-radius: 27px;
+      background: var(--brand);
+      color: var(--bg);
+      font-size: 15px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: transform 0.15s, opacity 0.15s;
+    }
+    .btn-primary:active { transform: scale(0.98); opacity: 0.9; }
+    .btn-secondary {
+      width: 100%;
+      height: 50px;
+      border-radius: 25px;
+      border: 1px solid var(--ol);
+      color: var(--tx);
+      font-size: 14px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 10px;
+    }
+    .btn-secondary:active { background: var(--sf); }
+
+    /* Onboarding Layouts */
+    .onboarding-wrap {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 40px 24px 32px;
+      text-align: center;
+    }
+    .logo-badge {
+      width: 84px;
+      height: 84px;
+      border-radius: 24px;
+      background: #111111;
+      border: 1px solid #222222;
+      display: grid;
+      place-items: center;
+      margin: 40px auto 24px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.5);
+    }
+    .tagline { color: var(--s2); font-size: 15px; margin-top: 8px; line-height: 1.4; }
+
+    /* Forms & Inputs */
+    .input-box {
+      width: 100%;
+      height: 54px;
+      border-radius: 16px;
+      background: var(--sf);
+      border: 1px solid var(--ol);
+      padding: 0 18px;
+      font-size: 16px;
+      color: var(--tx);
+      outline: 0;
+      transition: border-color 0.2s;
+    }
+    .input-box:focus { border-color: var(--tx); }
+    .pin-display {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      margin: 32px 0;
+    }
+    .pin-dot {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: 2px solid var(--ol);
+      transition: all 0.15s;
+    }
+    .pin-dot.filled { background: var(--tx); border-color: var(--tx); }
+    .keypad {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px 24px;
+      max-width: 280px;
+      margin: 0 auto 20px;
+    }
+    .keypad button {
+      width: 68px;
+      height: 68px;
+      border-radius: 50%;
+      background: var(--sf);
+      font-size: 24px;
+      font-weight: 600;
+      display: grid;
+      place-items: center;
+    }
+    .keypad button:active { background: var(--ol); }
+
+    /* Lists & Conversations */
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      height: 76px;
+      padding: 0 16px;
+      width: 100%;
+      text-align: left;
+      transition: background 0.15s;
+    }
+    .row:active { background: var(--sf); }
+    .avatar {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: #222222;
+      display: grid;
+      place-items: center;
+      font-weight: 600;
+      font-size: 16px;
+      flex: none;
+      border: 1px solid var(--ol);
+      color: #fff;
+    }
+    .chat-info { flex: 1; min-width: 0; }
+    .chat-name { font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .chat-sub { font-size: 14px; color: var(--s2); display: flex; align-items: center; gap: 4px; margin-top: 3px; }
+    .chat-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; font-size: 12px; color: var(--s2); }
+    .badge {
+      min-width: 18px;
+      height: 18px;
+      border-radius: 9px;
+      background: var(--tx);
+      color: var(--bg);
+      font-size: 11px;
+      font-weight: 700;
+      display: grid;
+      place-items: center;
+      padding: 0 4px;
+    }
+
+    /* Message Bubbles */
+    .msgs-wrap { padding: 16px 12px; display: flex; flex-direction: column; gap: 6px; }
+    .bubble {
+      max-width: 78%;
+      padding: 10px 14px;
+      border-radius: 18px;
+      font-size: 15px;
+      line-height: 1.4;
+      position: relative;
+      word-break: break-word;
+    }
+    .bubble.me {
+      align-self: flex-end;
+      background: var(--me);
+      color: var(--metx);
+      border-bottom-right-radius: 4px;
+    }
+    .bubble.th {
+      align-self: flex-start;
+      background: var(--th);
+      color: var(--thtx);
+      border: 1px solid var(--ol);
+      border-bottom-left-radius: 4px;
+    }
+    .bubble-meta {
+      font-size: 10px;
+      opacity: 0.65;
+      float: right;
+      margin: 4px 0 -2px 10px;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+    }
+
+    /* Tab bar */
+    .tabbar {
+      height: 72px;
+      background: var(--bg);
+      border-top: 1px solid var(--ol);
+      display: flex;
+      flex: none;
+      padding-bottom: 8px;
+    }
+    .tabbar button {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      font-size: 11px;
+      color: var(--s2);
+      font-weight: 500;
+    }
+    .tabbar button.active { color: var(--tx); font-weight: 700; }
+    .tabbar button.active i { background: var(--sf); border: 1px solid var(--ol); }
+    .tabbar i { width: 52px; height: 28px; border-radius: 14px; display: grid; place-items: center; }
+
+    /* Input Bar */
+    .chat-input-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px 14px;
+      background: var(--bg);
+      flex: none;
+    }
+    .chat-input-pill {
+      flex: 1;
+      height: 48px;
+      border-radius: 24px;
+      background: var(--sf);
+      border: 1px solid var(--ol);
+      display: flex;
+      align-items: center;
+      padding: 0 8px 0 14px;
+      gap: 6px;
+    }
+    .chat-input-pill input {
+      flex: 1;
+      background: none;
+      border: 0;
+      outline: 0;
+      color: var(--tx);
+      font-size: 15px;
+    }
+    .send-pill {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--brand);
+      color: var(--bg);
+      display: grid;
+      place-items: center;
+      flex: none;
+    }
+
+    /* Bottom Sheet */
+    .dimmer {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.65);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+      z-index: 10;
+    }
+    .dimmer.active { opacity: 1; pointer-events: auto; }
+    .bottom-sheet {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--sh);
+      border-top: 1px solid var(--ol);
+      border-radius: 28px 28px 0 0;
+      padding: 12px 16px 32px;
+      transform: translateY(100%);
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 11;
+    }
+    .bottom-sheet.active { transform: translateY(0); }
+    .sheet-handle { width: 36px; height: 4px; border-radius: 2px; background: var(--s2); margin: 4px auto 20px; }
+    .sheet-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px 8px; text-align: center; }
+    .sheet-grid button { display: flex; flex-direction: column; align-items: center; gap: 8px; font-size: 13px; color: var(--s2); }
+    .sheet-grid i { width: 56px; height: 56px; border-radius: 50%; background: var(--sf); border: 1px solid var(--ol); display: grid; place-items: center; color: var(--tx); }
+  </style>
+</head>
+<body>
+
+<div id="phone">
+
+  <!-- 1. WELCOME SCREEN -->
+  <div class="screen active" id="scr-welcome">
+    <div class="onboarding-wrap">
+      <div>
+        <div class="logo-badge">
+          <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 18V6l9 7 9-7v12M3 6l9 7 9-7"/>
+          </svg>
+        </div>
+        <h1 style="font-size: 32px; font-weight: 700; letter-spacing: -0.02em;">Mestxa</h1>
+        <p class="tagline">Simple. Fast. Yours.<br><span style="font-size: 13px; opacity: 0.7;">Zero-Knowledge Post-Quantum Messaging</span></p>
+      </div>
+
+      <div style="width: 100%; max-width: 320px;">
+        <button class="btn-primary" onclick="navTo('scr-choose-id')">Get Started</button>
+        <button class="btn-secondary" onclick="navTo('scr-link-device')">Link a Companion Device</button>
+        <p style="font-size: 11px; color: var(--s2); margin-top: 18px;">End-to-End Encrypted via PQXDH & SFrame</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. CHOOSE ID SCREEN -->
+  <div class="screen hidden" id="scr-choose-id">
+    <div class="header">
+      <button class="icon-btn" onclick="navTo('scr-welcome')">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      </button>
+      <h2>Choose Your Identity</h2>
+    </div>
+    <div class="onboarding-wrap" style="justify-content: flex-start;">
+      <p class="tagline" style="margin-bottom: 32px; text-align: left;">How would you like to communicate on Mestxa?</p>
+
+      <div style="width: 100%; display: flex; flex-direction: column; gap: 14px;">
+        <button class="row" style="height: 84px; border: 1px solid var(--ol); border-radius: 20px; background: var(--sf);" onclick="navTo('scr-pick-username')">
+          <div class="avatar" style="background: #2563eb;">@</div>
+          <div class="chat-info">
+            <div class="chat-name">Anonymous @Username</div>
+            <div class="chat-sub">Keep your phone number completely private</div>
+          </div>
+        </button>
+
+        <button class="row" style="height: 84px; border: 1px solid var(--ol); border-radius: 20px; background: var(--sf);" onclick="navTo('scr-phone')">
+          <div class="avatar" style="background: #059669;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3.1 19.5 19.5 0 01-6-6A19.8 19.8 0 012.1 4.2 2 2 0 014.1 2h3a2 2 0 012 1.7c.1 1 .4 1.9.7 2.8a2 2 0 01-.4 2.1L8.1 9.9a16 16 0 006 6l1.3-1.3a2 2 0 012.1-.4c.9.3 1.8.6 2.8.7a2 2 0 011.7 2z"/></svg>
+          </div>
+          <div class="chat-info">
+            <div class="chat-name">Phone Number</div>
+            <div class="chat-sub">Find existing address book contacts</div>
+          </div>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. PICK USERNAME SCREEN -->
+  <div class="screen hidden" id="scr-pick-username">
+    <div class="header">
+      <button class="icon-btn" onclick="navTo('scr-choose-id')">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      </button>
+      <h2>Claim Your Handle</h2>
+    </div>
+    <div class="page" style="padding: 24px;">
+      <p class="tagline" style="margin-bottom: 24px;">Your handle is your public cryptographic address. You can share it without sharing any personal information.</p>
+      <input class="input-box" id="inp-handle" placeholder="@username" value="@caleb">
+      <div style="margin-top: 32px;">
+        <button class="btn-primary" onclick="navTo('scr-pin')">Continue</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. PHONE NUMBER SCREEN -->
+  <div class="screen hidden" id="scr-phone">
+    <div class="header">
+      <button class="icon-btn" onclick="navTo('scr-choose-id')">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      </button>
+      <h2>Verify Phone</h2>
+    </div>
+    <div class="page" style="padding: 24px;">
+      <p class="tagline" style="margin-bottom: 24px;">Enter your mobile number to receive an encrypted verification code.</p>
+      <input class="input-box" placeholder="+1 (555) 019-2834" value="+1 (555) 019-2834">
+      <div style="margin-top: 32px;">
+        <button class="btn-primary" onclick="navTo('scr-pin')">Send Code</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. SET PIN SCREEN -->
+  <div class="screen hidden" id="scr-pin">
+    <div class="header">
+      <button class="icon-btn" onclick="navTo('scr-choose-id')">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      </button>
+      <h2>Set Local Vault PIN</h2>
+    </div>
+    <div class="onboarding-wrap" style="padding: 20px 24px;">
+      <p class="tagline">This PIN derives your hardware-backed SQLCipher encryption key via Argon2id.</p>
+
+      <div class="pin-display">
+        <div class="pin-dot filled"></div>
+        <div class="pin-dot filled"></div>
+        <div class="pin-dot filled"></div>
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+      </div>
+
+      <div class="keypad">
+        <button onclick="pressPin()">1</button><button onclick="pressPin()">2</button><button onclick="pressPin()">3</button>
+        <button onclick="pressPin()">4</button><button onclick="pressPin()">5</button><button onclick="pressPin()">6</button>
+        <button onclick="pressPin()">7</button><button onclick="pressPin()">8</button><button onclick="pressPin()">9</button>
+        <button></button><button onclick="pressPin()">0</button><button onclick="navTo('scr-main')">✓</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. LINK DEVICE SCREEN -->
+  <div class="screen hidden" id="scr-link-device">
+    <div class="header">
+      <button class="icon-btn" onclick="navTo('scr-welcome')">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      </button>
+      <h2>Link Companion Device</h2>
+    </div>
+    <div class="onboarding-wrap">
+      <p class="tagline">Scan this QR code from your primary phone to pair this device via the Sesame protocol.</p>
+      
+      <div style="width: 200px; height: 200px; background: #fff; padding: 12px; border-radius: 20px; display: grid; place-items: center; margin: 30px auto;">
+        <!-- Simulated dynamic QR matrix -->
+        <svg width="176" height="176" viewBox="0 0 24 24" fill="#000">
+          <path d="M2 2h7v7H2zm2 2v3h3V4zm5 0h2v2H9zm4-2h7v7h-7zm2 2v3h3V4zm-6 4h1v1h-1zm1 1h1v1h-1zm-3 2h2v1H7zm5 0h1v1h-1zm1 0h2v1h-2zm-9 3h7v7H2zm2 2v3h3v-3zm7-2h1v2h-1zm2 0h1v1h-1zm1 1h1v1h-1zm-4 2h2v1h-2zm4 0h1v2h-1zm-2 2h1v1h-1zm3 0h1v1h-1z"/>
+        </svg>
+      </div>
+
+      <button class="btn-primary" onclick="navTo('scr-main')">Simulate Linked</button>
+    </div>
+  </div>
+
+  <!-- 7. MAIN 4-TAB APP SHELL -->
+  <div class="screen hidden" id="scr-main">
+    
+    <!-- Tab A: Chats -->
+    <div id="tab-chats" class="tab-pane active" style="height: 100%; display: flex; flex-direction: column;">
+      <div class="header">
+        <h1>Chats</h1>
+        <button class="icon-btn" onclick="toggleSearch()">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        </button>
+        <button class="icon-btn" onclick="navTo('scr-settings')">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+        </button>
+      </div>
+
+      <!-- Filters -->
+      <div style="display: flex; gap: 8px; padding: 0 16px 10px;">
+        <button style="height: 34px; padding: 0 16px; border-radius: 17px; background: var(--tx); color: var(--bg); font-size: 13px; font-weight: 600;">All</button>
+        <button style="height: 34px; padding: 0 16px; border-radius: 17px; border: 1px solid var(--ol); font-size: 13px; color: var(--s2);">Unread</button>
+        <button style="height: 34px; padding: 0 16px; border-radius: 17px; border: 1px solid var(--ol); font-size: 13px; color: var(--s2);">Groups</button>
+      </div>
+
+      <div class="page" id="chat-list">
+        <!-- Rendered conversation list -->
+      </div>
+    </div>
+
+    <!-- Tab B: Calls -->
+    <div id="tab-calls" class="tab-pane" style="height: 100%; display: none; flex-direction: column;">
+      <div class="header">
+        <h1>Calls</h1>
+        <button class="icon-btn" onclick="navTo('scr-active-call')">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3.1 19.5 19.5 0 01-6-6A19.8 19.8 0 012.1 4.2 2 2 0 014.1 2h3a2 2 0 012 1.7c.1 1 .4 1.9.7 2.8a2 2 0 01-.4 2.1L8.1 9.9a16 16 0 006 6l1.3-1.3a2 2 0 012.1-.4c.9.3 1.8.6 2.8.7a2 2 0 011.7 2z"/></svg>
+        </button>
+      </div>
+      <div class="page" style="padding: 16px;">
+        <div style="background: var(--sf); border: 1px solid var(--ol); border-radius: 20px; padding: 18px; text-align: center; margin-bottom: 24px;">
+          <h3 style="font-size: 17px; font-weight: 600;">Pristine 48 kHz Audio Engine</h3>
+          <p style="font-size: 13px; color: var(--s2); margin-top: 4px;">Hardware echo cancelled & SFrame zero-knowledge encrypted.</p>
+          <button class="btn-primary" style="margin-top: 14px; height: 44px;" onclick="startCall('Amaka')">Start Test HD Voice Call</button>
+        </div>
+        <h4 style="font-size: 14px; color: var(--s2); margin-bottom: 12px;">Recent Calls</h4>
+        <div id="call-logs"></div>
+      </div>
+    </div>
+
+    <!-- Bottom Navigation Bar -->
+    <div class="tabbar">
+      <button class="active" onclick="switchTab('chats', this)">
+        <i><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></i>
+        Chats
+      </button>
+      <button onclick="switchTab('calls', this)">
+        <i><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3.1 19.5 19.5 0 01-6-6A19.8 19.8 0 012.1 4.2 2 2 0 014.1 2h3a2 2 0 012 1.7c.1 1 .4 1.9.7 2.8a2 2 0 01-.4 2.1L8.1 9.9a16 16 0 006 6l1.3-1.3a2 2 0 012.1-.4c.9.3 1.8.6 2.8.7a2 2 0 011.7 2z"/></svg></i>
+        Calls
+      </button>
+      <button onclick="navTo('scr-settings')">
+        <i><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg></i>
+        Settings
+      </button>
+    </div>
+  </div>
+
+  <!-- 8. CONVERSATION VIEW -->
+  <div class="screen hidden" id="scr-conversation">
+    <div class="header" style="border-bottom: 1px solid var(--ol);">
+      <button class="icon-btn" onclick="navTo('scr-main')">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      </button>
+      <div class="avatar" style="width: 38px; height: 38px; font-size: 14px;" id="conv-avatar">A</div>
+      <div class="chat-info" style="margin-left: -4px;">
+        <div class="chat-name" id="conv-name">Amaka</div>
+        <div class="chat-sub" style="font-size: 12px; color: var(--accent);">• PQXDH Verified</div>
+      </div>
+      <button class="icon-btn" onclick="startCall(currentChat)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3.1 19.5 19.5 0 01-6-6A19.8 19.8 0 012.1 4.2 2 2 0 014.1 2h3a2 2 0 012 1.7c.1 1 .4 1.9.7 2.8a2 2 0 01-.4 2.1L8.1 9.9a16 16 0 006 6l1.3-1.3a2 2 0 012.1-.4c.9.3 1.8.6 2.8.7a2 2 0 011.7 2z"/></svg>
+      </button>
+    </div>
+
+    <div class="page" id="conv-msgs">
+      <div class="msgs-wrap" id="msgs-container"></div>
+    </div>
+
+    <!-- Chat Input Bar -->
+    <div class="chat-input-bar">
+      <div class="chat-input-pill">
+        <input id="chat-inp" placeholder="Encrypted message..." oninput="handleInput()" onkeydown="if(event.key==='Enter')sendMessage()">
+        <button class="icon-btn" onclick="toggleSheet(true)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.4 11l-9.2 9.2a6 6 0 01-8.5-8.5l9.2-9.2a4 4 0 015.7 5.7l-9.2 9.2a2 2 0 01-2.8-2.8l8.5-8.5"/></svg>
+        </button>
+      </div>
+      <button class="send-pill" id="btn-send" onclick="sendMessage()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3zM19 10v2a7 7 0 01-14 0v-2M12 19v4"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- 9. ACTIVE 48kHz HD CALL OVERLAY -->
+  <div class="screen hidden" id="scr-active-call" style="background: #0d0d0d; justify-content: space-between; padding: 60px 24px;">
+    <div style="text-align: center;">
+      <div class="avatar" style="width: 100px; height: 100px; font-size: 36px; margin: 0 auto 16px; border: 2px solid var(--tx);" id="call-avatar">A</div>
+      <h2 style="font-size: 24px;" id="call-name">Amaka</h2>
+      <p style="font-size: 13px; color: var(--accent); margin-top: 6px;">48 kHz Full-Band Opus • SFrame E2EE</p>
+      <p style="font-size: 15px; color: var(--s2); margin-top: 12px;" id="call-timer">00:14</p>
+    </div>
+
+    <!-- Acoustic Waveform Simulator -->
+    <div style="display: flex; gap: 4px; justify-content: center; align-items: center; height: 40px;">
+      <div style="width: 4px; height: 18px; background: var(--tx); border-radius: 2px;"></div>
+      <div style="width: 4px; height: 32px; background: var(--tx); border-radius: 2px;"></div>
+      <div style="width: 4px; height: 24px; background: var(--tx); border-radius: 2px;"></div>
+      <div style="width: 4px; height: 38px; background: var(--tx); border-radius: 2px;"></div>
+      <div style="width: 4px; height: 16px; background: var(--tx); border-radius: 2px;"></div>
+    </div>
+
+    <div style="display: flex; justify-content: center; gap: 24px;">
+      <button class="icon-btn" style="width: 60px; height: 60px; background: #dc2626;" onclick="navTo('scr-conversation')">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M10.68 13.31a16 16 0 003.41 2.6l1.27-1.27a2 2 0 012.11-.45 11.23 11.23 0 003.52.56 2 2 0 012 2v3.52a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.42 19.42 0 01-6-6 19.8 19.8 0 01-3.12-8.67A2 2 0 014.11 2h3.53a2 2 0 012 2 11.23 11.23 0 00.56 3.52 2 2 0 01-.45 2.11L8.48 10.9a16.05 16.05 0 002.2 2.41z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- 10. SETTINGS SCREEN -->
+  <div class="screen hidden" id="scr-settings">
+    <div class="header" style="border-bottom: 1px solid var(--ol);">
+      <button class="icon-btn" onclick="navTo('scr-main')">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      </button>
+      <h2>Settings</h2>
+    </div>
+    <div class="page" style="padding: 16px;">
+      <div style="display: flex; align-items: center; gap: 16px; padding: 12px 8px; border-bottom: 1px solid var(--ol); margin-bottom: 16px;">
+        <div class="avatar" style="width: 64px; height: 64px; font-size: 20px;">C</div>
+        <div>
+          <div style="font-size: 18px; font-weight: 700;">Caleb</div>
+          <div style="font-size: 14px; color: var(--s2);">@caleb</div>
+        </div>
+      </div>
+
+      <div class="row" onclick="toggleTheme()">
+        <div class="chat-info">
+          <div class="chat-name">OLED Dark Mode</div>
+          <div class="chat-sub">Pure #000000 true black</div>
+        </div>
+        <div style="font-size: 14px; font-weight: 600;" id="theme-status">ON</div>
+      </div>
+
+      <div class="row">
+        <div class="chat-info">
+          <div class="chat-name">Post-Quantum Cryptography</div>
+          <div class="chat-sub">ML-KEM-768 Kyber Active</div>
+        </div>
+        <div style="color: var(--accent); font-size: 13px; font-weight: 600;">ACTIVE</div>
+      </div>
+
+      <div class="row">
+        <div class="chat-info">
+          <div class="chat-name">Store-and-Forward Policy</div>
+          <div class="chat-sub">Zero Message Database Retention</div>
+        </div>
+        <div style="color: var(--accent); font-size: 13px; font-weight: 600;">PURGE ON ACK</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ATTACHMENT BOTTOM SHEET -->
+  <div class="dimmer" id="dimmer" onclick="toggleSheet(false)"></div>
+  <div class="bottom-sheet" id="bottom-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-grid">
+      <button onclick="toggleSheet(false)"><i><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg></i>Gallery</button>
+      <button onclick="toggleSheet(false)"><i><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg></i>Camera</button>
+      <button onclick="toggleSheet(false)"><i><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg></i>Document</button>
+      <button onclick="toggleSheet(false)"><i><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg></i>Location</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  let currentChat = 'Amaka';
+  const chats = [
+    { name: 'Amaka', msg: 'The prototypes look very clean and responsive', time: '1:10 PM', unread: 2, avatar: 'A' },
+    { name: 'Chidi', msg: 'Are you reaching the server endpoint early?', time: '11:45 AM', unread: 0, avatar: 'C' },
+    { name: 'Tunde', msg: 'SFrame WebRTC call testing is passing 100%', time: '9:20 AM', unread: 0, avatar: 'T' },
+    { name: 'Ngozi', msg: 'PQXDH key agreement verified with Kyber', time: 'Yesterday', unread: 0, avatar: 'N' }
+  ];
+
+  const messages = {
+    'Amaka': [
+      { from: 'them', text: 'Good morning! Have you tested the new Mestxa relay?', time: '10:41 AM' },
+      { from: 'me', text: 'Yes, running on bare-metal with Redis Unix socket. Zero container lag.', time: '10:43 AM' },
+      { from: 'them', text: 'Incredible. What about audio calls?', time: '10:44 AM' },
+      { from: 'me', text: '48 kHz full-band Opus with SFrame frame-level encryption.', time: '10:45 AM' },
+      { from: 'them', text: 'The prototypes look very clean and responsive', time: '1:10 PM' }
+    ]
+  };
+
+  function renderChats() {
+    const list = document.getElementById('chat-list');
+    list.innerHTML = chats.map(c => `
+      <button class="row" onclick="openChat('${c.name}')">
+        <div class="avatar">${c.avatar}</div>
+        <div class="chat-info">
+          <div class="chat-name">${c.name}</div>
+          <div class="chat-sub">${c.msg}</div>
+        </div>
+        <div class="chat-meta">
+          <div>${c.time}</div>
+          ${c.unread ? `<div class="badge">${c.unread}</div>` : ''}
+        </div>
+      </button>
+    `).join('');
+  }
+
+  function openChat(name) {
+    currentChat = name;
+    document.getElementById('conv-name').textContent = name;
+    document.getElementById('conv-avatar').textContent = name[0];
+    renderMessages();
+    navTo('scr-conversation');
+  }
+
+  function renderMessages() {
+    const msgs = messages[currentChat] || [];
+    const container = document.getElementById('msgs-container');
+    container.innerHTML = msgs.map(m => `
+      <div class="bubble ${m.from === 'me' ? 'me' : 'th'}">
+        ${m.text}
+        <span class="bubble-meta">
+          ${m.time}
+          ${m.from === 'me' ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M2 13l4 4L15 8M11 15l2 2L22 8"/></svg>' : ''}
+        </span>
+      </div>
+    `).join('');
+    const page = document.getElementById('conv-msgs');
+    page.scrollTop = page.scrollHeight;
+  }
+
+  function sendMessage() {
+    const inp = document.getElementById('chat-inp');
+    const val = inp.value.trim();
+    if (!val) return;
+    if (!messages[currentChat]) messages[currentChat] = [];
+    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    messages[currentChat].push({ from: 'me', text: val, time });
+    inp.value = '';
+    handleInput();
+    renderMessages();
+
+    // Simulate instant store-and-forward response
+    setTimeout(() => {
+      messages[currentChat].push({ from: 'them', text: 'Encrypted ACK received & purged from server memory.', time });
+      renderMessages();
+    }, 800);
+  }
+
+  function handleInput() {
+    const val = document.getElementById('chat-inp').value.trim();
+    const btn = document.getElementById('btn-send');
+    if (val.length > 0) {
+      btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>';
+    } else {
+      btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3zM19 10v2a7 7 0 01-14 0v-2M12 19v4"/></svg>';
+    }
+  }
+
+  function startCall(name) {
+    document.getElementById('call-name').textContent = name;
+    document.getElementById('call-avatar').textContent = name[0];
+    navTo('scr-active-call');
+  }
+
+  function navTo(screenId) {
+    document.querySelectorAll('.screen').forEach(s => {
+      s.classList.remove('active');
+      s.classList.add('hidden');
+    });
+    const target = document.getElementById(screenId);
+    if (target) {
+      target.classList.remove('hidden');
+      target.classList.add('active');
+    }
+  }
+
+  function switchTab(tab, btn) {
+    document.querySelectorAll('.tabbar button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.tab-pane').forEach(p => p.style.display = 'none');
+    document.getElementById(`tab-${tab}`).style.display = 'flex';
+  }
+
+  function toggleSheet(show) {
+    const dimmer = document.getElementById('dimmer');
+    const sheet = document.getElementById('bottom-sheet');
+    if (show) {
+      dimmer.classList.add('active');
+      sheet.classList.add('active');
+    } else {
+      dimmer.classList.remove('active');
+      sheet.classList.remove('active');
+    }
+  }
+
+  function toggleTheme() {
+    const root = document.documentElement;
+    const isDark = root.getAttribute('data-theme') === 'dark';
+    const next = isDark ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    document.getElementById('theme-status').textContent = next === 'dark' ? 'ON' : 'OFF';
+  }
+
+  function pressPin() {
+    navTo('scr-main');
+  }
+
+  renderChats();
+</script>
+</body>
+</html>

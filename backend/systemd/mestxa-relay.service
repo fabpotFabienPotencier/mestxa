@@ -1,0 +1,32 @@
+[Unit]
+Description=Mestxa Zero-Knowledge Bare-Metal Message Relay
+After=network.target redis-server.service
+Wants=redis-server.service
+
+[Service]
+Type=simple
+User=mestxa
+Group=mestxa
+WorkingDirectory=/opt/mestxa
+ExecStart=/usr/local/bin/mestxa-relay
+Restart=always
+RestartSec=2s
+
+# High-concurrency socket limits (handles 1,000,000+ open WebSockets)
+LimitNOFILE=1048576
+LimitNPROC=512000
+
+# Security Hardening
+ProtectSystem=full
+ProtectHome=true
+PrivateTmp=true
+NoNewPrivileges=true
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+
+# Environment overrides
+Environment="PORT=8080"
+Environment="RUST_LOG=info,mestxa_relay=info"
+
+[Install]
+WantedBy=multi-user.target

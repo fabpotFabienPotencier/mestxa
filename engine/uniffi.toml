@@ -1,0 +1,6 @@
+[bindings.kotlin]
+package_name = "com.mestxa.engine"
+cdylib_name = "mestxa"
+
+[bindings.swift]
+module_name = "MestxaEngine"

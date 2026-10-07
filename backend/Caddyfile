@@ -1,0 +1,28 @@
+# Production Caddy Configuration for Mestxa Bare-Metal Server
+# Auto-renews Let's Encrypt TLS with HTTP/3 & QUIC support
+
+api.mestxa.com {
+    # Reverse proxy all WebSocket and REST traffic directly to mestxa-relay
+    reverse_proxy 127.0.0.1:8080 {
+        # Streaming & WebSocket buffer tuning
+        flush_interval -1
+    }
+
+    # Security Headers
+    header {
+        Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "no-referrer"
+        -Server
+    }
+
+    # Structured logging
+    log {
+        output file /var/log/caddy/mestxa_api.log {
+            roll_size 50mb
+            roll_keep 5
+        }
+        format json
+    }
+}

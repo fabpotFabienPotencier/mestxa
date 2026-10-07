@@ -1,0 +1,68 @@
+name: Build & Audit Mestxa Bare-Metal Relay
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main, release ]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/build-relay.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'backend/**'
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: "-D warnings"
+
+jobs:
+  audit:
+    name: Security Vulnerability Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install cargo-audit
+        run: cargo install cargo-audit
+      - name: Run Security Audit
+        working-directory: backend
+        run: cargo audit
+
+  build:
+    name: Compile Stripped Linux Binary (musl)
+    needs: audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-musl
+
+      - name: Install Protoc & musl-tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler musl-tools
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: backend -> target
+
+      - name: Build Release Binary
+        working-directory: backend
+        run: |
+          cargo build --release --target x86_64-unknown-linux-musl
+          strip target/x86_64-unknown-linux-musl/release/mestxa-relay
+
+      - name: Check Binary Size
+        run: ls -lh backend/target/x86_64-unknown-linux-musl/release/mestxa-relay
+
+      - name: Upload Binary Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mestxa-relay-x86_64-musl
+          path: backend/target/x86_64-unknown-linux-musl/release/mestxa-relay
+          if-no-files-found: error
+          retention-days: 14

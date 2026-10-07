@@ -1,0 +1,1512 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Messaging app prototype</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <style>
+    :root {
+      --bg: #000;
+      --tx: #fff;
+      --s2: #8A8A8A;
+      --sf: #1C1C1C;
+      --sh: #121212;
+      --ol: #3A3A3A;
+      --me: #fff;
+      --metx: #000;
+      --th: #1C1C1C;
+      --ac: var(--tx);
+      --acx: var(--bg);
+      --sfa: var(--sf);
+      --acl: var(--tx);
+      box-sizing: border-box;
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-bottom: env(safe-area-inset-bottom, 0px)
+    }
+
+    :root[data-theme=light] {
+      --bg: #fff;
+      --tx: #000;
+      --s2: #6B6B6B;
+      --sf: #F2F2F2;
+      --sh: #fff;
+      --ol: #D9D9D9;
+      --me: #000;
+      --metx: #fff;
+      --th: #F2F2F2
+    }
+
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+      background: #000;
+      font-family: Inter, system-ui, sans-serif;
+      color: var(--tx);
+      -webkit-tap-highlight-color: transparent
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    html {
+      scroll-padding-top: env(safe-area-inset-top, 0px)
+    }
+
+    #phone {
+      position: relative;
+      width: 100%;
+      max-width: 420px;
+      height: 100%;
+      max-height: 880px;
+      margin: 0 auto;
+      background: var(--bg);
+      overflow: hidden
+    }
+
+    @media(min-width:500px) {
+      #phone {
+        margin-top: max(0px, calc((100% - 880px)/2));
+        border: 1px solid var(--ol);
+        border-radius: 36px
+      }
+    }
+
+    .scr {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg);
+      transition: transform .25s ease-out
+    }
+
+    .scr {
+      isolation: isolate
+    }
+
+    #cv {
+      z-index: 5
+    }
+
+    .scr.push {
+      transform: translateX(100%)
+    }
+
+    .scr.push.on {
+      transform: none
+    }
+
+    .hd {
+      height: 64px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 16px;
+      flex: none
+    }
+
+    .hd h1 {
+      font-size: 28px;
+      font-weight: 700;
+      margin: 0;
+      flex: 1;
+      letter-spacing: -.02em
+    }
+
+    .hd h2 {
+      font-size: 20px;
+      font-weight: 700;
+      margin: 0;
+      flex: 1
+    }
+
+    .cv .hd {
+      border-bottom: 1px solid var(--ol);
+      padding-left: 8px
+    }
+
+    .pg {
+      flex: 1;
+      overflow: auto;
+      position: relative
+    }
+
+    button {
+      font: inherit;
+      color: inherit;
+      background: none;
+      border: 0;
+      padding: 0;
+      cursor: pointer
+    }
+
+    .ib {
+      flex: none;
+      width: 40px;
+      height: 40px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%
+    }
+
+    .ib:active,
+    .row:active {
+      background: var(--sf)
+    }
+
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      height: 76px;
+      padding: 0 16px;
+      width: 100%;
+      text-align: left
+    }
+
+    .av {
+      border-radius: 50%;
+      background: #2a2a2a;
+      color: #fff;
+      display: grid;
+      place-items: center;
+      font-weight: 600;
+      font-size: 15px;
+      flex: none
+    }
+
+    .sq {
+      border-radius: 14px
+    }
+
+    .mid {
+      flex: 1;
+      min-width: 0
+    }
+
+    .sub .t {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      min-width: 0
+    }
+
+    #main .pg {
+      padding-bottom: 96px
+    }
+
+    .nm {
+      font-size: 17px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis
+    }
+
+    .sub {
+      font-size: 15px;
+      color: var(--s2);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: flex;
+      gap: 4px;
+      align-items: center
+    }
+
+    .el {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap
+    }
+
+    .rt {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 6px;
+      font-size: 13px;
+      color: var(--s2);
+      align-self: stretch;
+      justify-content: center
+    }
+
+    .rt.u {
+      color: var(--acl)
+    }
+
+    .bdg {
+      min-width: 20px;
+      height: 20px;
+      border-radius: 10px;
+      background: var(--ac);
+      color: var(--acx);
+      font-size: 12px;
+      font-weight: 600;
+      display: grid;
+      place-items: center;
+      padding: 0 5px
+    }
+
+    .pills {
+      display: flex;
+      gap: 6px;
+      padding: 0 16px 8px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      flex: none
+    }
+
+    .pills::-webkit-scrollbar {
+      display: none
+    }
+
+    .pl {
+      flex: none;
+      height: 30px;
+      padding: 0 12px;
+      white-space: nowrap;
+      border-radius: 15px;
+      border: 1px solid var(--ol);
+      font-size: 13px;
+      color: var(--s2)
+    }
+
+    .pl.pc {
+      width: 30px;
+      padding: 0;
+      display: grid;
+      place-items: center
+    }
+
+    .pl.a {
+      background: var(--sfa);
+      color: var(--acl);
+      border-color: var(--sfa)
+    }
+
+    .fab {
+      position: absolute;
+      right: 16px;
+      bottom: 96px;
+      width: 56px;
+      height: 56px;
+      border-radius: 16px;
+      background: var(--ac);
+      color: var(--acx);
+      display: grid;
+      place-items: center;
+      transition: transform .15s
+    }
+
+    .fab:active {
+      transform: scale(.94)
+    }
+
+    .tb {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 80px;
+      background: var(--bg);
+      border-top: 1px solid var(--ol);
+      display: flex;
+      padding-top: 10px
+    }
+
+    .tb button {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      color: var(--s2)
+    }
+
+    .tb i {
+      width: 64px;
+      height: 32px;
+      border-radius: 16px;
+      display: grid;
+      place-items: center;
+      transition: background .2s
+    }
+
+    .tb .a {
+      color: var(--acl);
+      font-weight: 700
+    }
+
+    .tb .a i {
+      background: var(--sfa)
+    }
+
+    .menu {
+      position: absolute;
+      top: 56px;
+      right: 12px;
+      background: var(--sh);
+      border: 1px solid var(--ol);
+      border-radius: 16px;
+      padding: 6px;
+      z-index: 9;
+      transform-origin: top right;
+      animation: pop .15s ease-out;
+      box-shadow: 0 8px 30px #0006
+    }
+
+    .menu button {
+      display: block;
+      width: 100%;
+      text-align: left;
+      padding: 12px 16px;
+      font-size: 15px;
+      border-radius: 10px;
+      min-width: 180px
+    }
+
+    .menu button:active {
+      background: var(--sf)
+    }
+
+    @keyframes pop {
+      from {
+        transform: scale(.9);
+        opacity: 0
+      }
+    }
+
+    .msgs {
+      padding: 12px 12px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px
+    }
+
+    .day {
+      align-self: center;
+      background: var(--sf);
+      font-size: 12px;
+      padding: 5px 12px;
+      border-radius: 12px;
+      margin: 4px 0 8px
+    }
+
+    .b {
+      max-width: 78%;
+      padding: 8px 12px;
+      border-radius: 12px;
+      font-size: 16px;
+      line-height: 1.35;
+      animation: in .2s ease-out
+    }
+
+    .b span {
+      float: right;
+      margin: 6px 0 -2px 12px;
+      font-size: 11px;
+      display: inline-flex;
+      gap: 3px;
+      align-items: center;
+      opacity: .6
+    }
+
+    .b.me {
+      align-self: flex-end;
+      background: var(--ac);
+      color: var(--acx)
+    }
+
+    .b.th {
+      align-self: flex-start;
+      background: var(--sfa)
+    }
+
+    .b.f {
+      margin-top: 8px
+    }
+
+    .b.me.f {
+      border-top-right-radius: 3px
+    }
+
+    .b.th.f {
+      border-top-left-radius: 3px
+    }
+
+    @keyframes in {
+      from {
+        transform: translateY(8px);
+        opacity: 0
+      }
+    }
+
+    .bar {
+      width: 100%;
+      display: flex;
+      gap: 8px;
+      padding: 8px 12px 12px;
+      flex: none
+    }
+
+    .in {
+      flex: 1;
+      min-width: 0;
+      height: 52px;
+      border-radius: 26px;
+      background: var(--sfa);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 0 6px 0 12px;
+      color: var(--s2)
+    }
+
+    .in input {
+      flex: 1;
+      width: 0;
+      min-width: 0;
+      background: none;
+      border: 0;
+      outline: 0;
+      font: inherit;
+      font-size: 16px;
+      color: var(--tx)
+    }
+
+    .snd {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: var(--ac);
+      color: var(--acx);
+      display: grid;
+      place-items: center;
+      flex: none
+    }
+
+    .dim {
+      position: absolute;
+      inset: 0;
+      background: #000a;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .2s;
+      z-index: 7
+    }
+
+    .dim.on {
+      opacity: 1;
+      pointer-events: auto
+    }
+
+    .sheet {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--sh);
+      border-radius: 28px 28px 0 0;
+      border: 1px solid var(--ol);
+      border-bottom: 0;
+      transform: translateY(105%);
+      transition: transform .25s ease-out;
+      z-index: 8;
+      overflow: hidden
+    }
+
+    .sheet.on {
+      transform: none
+    }
+
+    .hdl {
+      width: 40px;
+      height: 4px;
+      border-radius: 2px;
+      background: var(--s2);
+      margin: 10px auto 18px
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px 8px;
+      padding: 0 12px 20px;
+      text-align: center
+    }
+
+    .grid button {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      color: var(--s2)
+    }
+
+    .grid i {
+      width: 64px;
+      height: 32px;
+      border-radius: 16px;
+      border: 1px solid var(--ol);
+      display: grid;
+      place-items: center;
+      color: var(--acl);
+      background: var(--bg)
+    }
+
+    .ph {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1px;
+      height: 92px
+    }
+
+    .ph div {
+      height: 100%
+    }
+
+    .ring {
+      padding: 3px;
+      border: 2px solid var(--acl);
+      border-radius: 50%;
+      display: flex
+    }
+
+    .ring.s {
+      border-color: var(--ol)
+    }
+
+    .lab {
+      font-size: 13px;
+      color: var(--s2);
+      padding: 12px 16px 4px
+    }
+
+    .tg {
+      width: 48px;
+      height: 28px;
+      border-radius: 14px;
+      background: var(--ol);
+      position: relative;
+      transition: background .2s;
+      flex: none
+    }
+
+    .tg:after {
+      content: "";
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--tx);
+      transition: transform .2s
+    }
+
+    .tg.on {
+      background: var(--ac)
+    }
+
+    .tg.on:after {
+      transform: translateX(20px);
+      background: var(--acx)
+    }
+
+    .set {
+      height: 64px
+    }
+
+    .big {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px 20px
+    }
+
+    .sc {
+      display: flex;
+      gap: 8px;
+      padding: 8px 16px 16px;
+      overflow-x: auto;
+      scrollbar-width: none
+    }
+
+    .sc::-webkit-scrollbar {
+      display: none
+    }
+
+    .sk {
+      flex: none;
+      width: 76px;
+      height: 135px;
+      border-radius: 20px;
+      position: relative;
+      overflow: hidden;
+      background: var(--sf);
+      border: 1px solid var(--ol);
+      text-align: left
+    }
+
+    .sk:after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(transparent 45%, #000b)
+    }
+
+    .sk .ring {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 2px;
+      z-index: 1
+    }
+
+    .sk .n2 {
+      position: absolute;
+      left: 8px;
+      right: 6px;
+      bottom: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      line-height: 1.15;
+      color: #fff;
+      z-index: 1
+    }
+
+    .sk.ad {
+      background: var(--sfa)
+    }
+
+    .sk.ad:after {
+      display: none
+    }
+
+    .sk.ad .n2 {
+      left: 0;
+      right: 0;
+      text-align: center;
+      color: var(--tx)
+    }
+
+    .pb {
+      position: absolute;
+      right: -4px;
+      bottom: -4px;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--ac);
+      color: var(--acx);
+      display: grid;
+      place-items: center;
+      border: 2px solid var(--sfa)
+    }
+
+    .sec {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 16px 4px;
+      font-size: 22px;
+      font-weight: 700
+    }
+
+    .ex {
+      height: 44px;
+      border-radius: 22px;
+      background: var(--sfa);
+      padding: 0 18px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 16px;
+      font-weight: 500
+    }
+
+    .fab2 {
+      position: absolute;
+      right: 24px;
+      bottom: 166px;
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: var(--sfa);
+      border: 1px solid var(--ol);
+      display: grid;
+      place-items: center;
+      color: var(--acl)
+    }
+
+    .qa {
+      display: flex;
+      gap: 16px;
+      padding: 8px 16px 12px;
+      overflow-x: auto;
+      scrollbar-width: none
+    }
+
+    .qa::-webkit-scrollbar {
+      display: none
+    }
+
+    .qa button {
+      flex: none;
+      width: 64px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--s2)
+    }
+
+    .qa i {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: var(--sfa);
+      display: grid;
+      place-items: center;
+      color: var(--acl)
+    }
+
+    .seg {
+      display: flex;
+      gap: 4px;
+      padding: 12px 12px 0;
+      flex: none
+    }
+
+    .seg i {
+      flex: 1;
+      height: 3px;
+      border-radius: 2px;
+      background: #ffffff40;
+      overflow: hidden
+    }
+
+    .seg b {
+      display: block;
+      height: 100%;
+      background: #fff;
+      width: 0
+    }
+
+    .seg .d b {
+      width: 100%
+    }
+
+    .seg .c b {
+      animation: fill 5s linear forwards
+    }
+
+    @keyframes fill {
+      to {
+        width: 100%
+      }
+    }
+
+    .cap {
+      flex: 1;
+      display: grid;
+      place-items: center;
+      padding: 32px;
+      text-align: center;
+      font-size: 26px;
+      font-weight: 600;
+      line-height: 1.25;
+      color: #fff
+    }
+
+    .tz {
+      position: absolute;
+      top: 76px;
+      bottom: 84px;
+      width: 40%;
+      z-index: 2
+    }
+
+    .ta {
+      width: 100%;
+      height: 100%;
+      background: none;
+      border: 0;
+      outline: 0;
+      resize: none;
+      color: var(--tx);
+      font: 600 26px/1.25 Inter, sans-serif;
+      text-align: center;
+      padding: 30% 32px 0
+    }
+
+    .ta::placeholder {
+      color: var(--s2)
+    }
+
+    .cg {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 28px 0;
+      padding: 16px 16px 40px;
+      justify-items: center
+    }
+
+    .cc {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      transition: transform .15s
+    }
+
+    .cc:active {
+      transform: scale(.92)
+    }
+
+    .cc.on {
+      box-shadow: 0 0 0 4px var(--bg), 0 0 0 6px var(--tx)
+    }
+
+    .cc i {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #fff;
+      color: #000;
+      display: grid;
+      place-items: center
+    }
+
+    .ch {
+      flex: none;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 14px;
+      border-radius: 18px;
+      background: var(--sfa);
+      font-size: 14px;
+      color: var(--tx)
+    }
+
+    .ch.a {
+      background: var(--ac);
+      color: var(--acx)
+    }
+
+    .ibx {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: var(--sfa);
+      color: var(--acl);
+      display: grid;
+      place-items: center;
+      flex: none
+    }
+
+    .nt * {
+      transition: none !important
+    }
+
+    ::view-transition-old(root),
+    ::view-transition-new(root) {
+      animation: none;
+      mix-blend-mode: normal
+    }
+
+    ::view-transition-old(root) {
+      z-index: 1
+    }
+
+    ::view-transition-new(root) {
+      z-index: 2
+    }
+
+    #main {
+      overflow: hidden
+    }
+
+    #trk {
+      display: flex;
+      width: 400%;
+      height: 100%;
+      will-change: transform
+    }
+
+    .pane {
+      width: 25%;
+      height: 100%;
+      flex: none;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden
+    }
+
+    .pane .pg,
+    .pane .hd {
+      touch-action: pan-y
+    }
+
+    .pills,
+    .sc,
+    .qa {
+      touch-action: pan-x pan-y
+    }
+
+    .tb {
+      z-index: 3
+    }
+
+    html,
+    body {
+      overscroll-behavior: none
+    }
+
+    #splash {
+      position: absolute;
+      inset: 0;
+      z-index: 100;
+      background: var(--bg);
+      color: var(--tx);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: opacity .4s ease
+    }
+
+    #splash.out {
+      opacity: 0;
+      pointer-events: none
+    }
+
+    #splash .lg {
+      animation: lg .6s cubic-bezier(.22, 1, .36, 1) both
+    }
+
+    @keyframes lg {
+      from {
+        opacity: 0;
+        transform: scale(.9)
+      }
+    }
+
+    #splash .fr {
+      position: absolute;
+      bottom: 56px;
+      left: 0;
+      right: 0;
+      text-align: center;
+      animation: fr .6s .3s ease both
+    }
+
+    @keyframes fr {
+      from {
+        opacity: 0
+      }
+    }
+
+    #splash small {
+      display: block;
+      font-size: 14px;
+      color: var(--s2);
+      margin-bottom: 4px
+    }
+
+    #splash b {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -.01em
+    }
+
+    #nc,
+    #cm {
+      z-index: 4
+    }
+
+    #ci {
+      z-index: 6
+    }
+
+    #cl {
+      z-index: 20
+    }
+
+    .cb {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: #1c1c1c;
+      color: #fff;
+      display: grid;
+      place-items: center;
+      transition: background .15s
+    }
+
+    .cb.on {
+      background: #fff;
+      color: #000
+    }
+
+    .b {
+      position: relative;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none
+    }
+
+    .b:has(.rx) {
+      margin-bottom: 10px
+    }
+
+    .rx {
+      position: absolute;
+      bottom: -12px;
+      left: 8px;
+      background: var(--sh);
+      color: var(--tx);
+      border: 1px solid var(--ol);
+      border-radius: 10px;
+      padding: 0 5px;
+      font-size: 12px;
+      font-style: normal;
+      line-height: 18px
+    }
+
+    .qt {
+      border-left: 3px solid currentColor;
+      padding: 2px 8px;
+      margin-bottom: 4px;
+      opacity: .7;
+      font-size: 13px
+    }
+
+    .cd {
+      width: 210px;
+      max-width: 100%
+    }
+
+    .dots i {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+      margin: 0 2px;
+      animation: dt 1s infinite
+    }
+
+    .dots i:nth-child(2) {
+      animation-delay: .15s
+    }
+
+    .dots i:nth-child(3) {
+      animation-delay: .3s
+    }
+
+    @keyframes dt {
+      50% {
+        transform: translateY(-4px);
+        opacity: .4
+      }
+    }
+
+    #gn,
+    #sbs,
+    #kp {
+      z-index: 5
+    }
+
+    .ck {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: 2px solid var(--ol);
+      display: grid;
+      place-items: center;
+      flex: none
+    }
+
+    .ck.on {
+      background: var(--ac);
+      border-color: var(--ac);
+      color: var(--acx)
+    }
+
+    .key {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: var(--sf);
+      font-size: 26px;
+      font-weight: 500;
+      display: grid;
+      place-items: center
+    }
+
+    .key:active {
+      background: var(--ol)
+    }
+
+    #mys,
+    #chn,
+    #scc,
+    #arc {
+      z-index: 5
+    }
+
+    #mld {
+      z-index: 6
+    }
+
+    #gn {
+      z-index: 9
+    }
+
+    #sed {
+      z-index: 6
+    }
+
+    @media(prefers-reduced-motion:reduce) {
+      * {
+        transition: none !important;
+        animation: none !important
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="phone"></div>
+  <script>
+    const P = { back: "M19 12H5M12 19l-7-7 7-7", search: "M11 19a8 8 0 100-16 8 8 0 000 16zM21 21l-4.35-4.35", more: "M12 5h.01M12 12h.01M12 19h.01", plus: "M12 5v14M5 12h14", chat: "M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z", edit: "M12 20h9M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4z", cam: "M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2zM12 17a4 4 0 100-8 4 4 0 000 8z", phone: "M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3.1 19.5 19.5 0 01-6-6A19.8 19.8 0 012.1 4.2 2 2 0 014.1 2h3a2 2 0 012 1.7c.1 1 .4 1.9.7 2.8a2 2 0 01-.4 2.1L8.1 9.9a16 16 0 006 6l1.3-1.3a2 2 0 012.1-.4c.9.3 1.8.6 2.8.7a2 2 0 011.7 2z", video: "M23 7l-7 5 7 5zM3 5h11a2 2 0 012 2v10a2 2 0 01-2 2H3a2 2 0 01-2-2V7a2 2 0 012-2z", mic: "M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3zM19 10v2a7 7 0 01-14 0v-2M12 19v4", send: "M12 19V5M5 12l7-7 7 7", clip: "M21.4 11l-9.2 9.2a6 6 0 01-8.5-8.5l9.2-9.2a4 4 0 015.7 5.7l-9.2 9.2a2 2 0 01-2.8-2.8l8.5-8.5", smile: "M12 22a10 10 0 100-20 10 10 0 000 20zM8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01", img: "M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2zM8.5 10a1.5 1.5 0 100-3 1.5 1.5 0 000 3zM21 15l-5-5L5 21", doc: "M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8zM14 2v6h6M16 13H8M16 17H8", pin: "M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0zM12 13a3 3 0 100-6 3 3 0 000 6z", user: "M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z", poll: "M12 20V10M18 20V4M6 20v-4", cal: "M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2zM16 2v4M8 2v4M3 10h18", head: "M3 18v-6a9 9 0 0118 0v6M21 19a2 2 0 01-2 2h-1a2 2 0 01-2-2v-3a2 2 0 012-2h3zM3 19a2 2 0 002 2h1a2 2 0 002-2v-3a2 2 0 00-2-2H3z", clock: "M12 22a10 10 0 100-20 10 10 0 000 20zM12 6v6l4 2", users: "M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.9M16 3.1a4 4 0 010 7.8", ck: "M2 13l4 4L15 8M11 15l2 2L22 8", in: "M17 7L7 17M17 17H7V7", out: "M7 17L17 7M7 7h10v10", right: "M9 6l6 6-6 6", pad: "M6 4h.01M12 4h.01M18 4h.01M6 10h.01M12 10h.01M18 10h.01M6 16h.01M12 16h.01M18 16h.01M12 21h.01", x: "M18 6L6 18M6 6l12 12", tick: "M20 6L9 17l-5-5", half: "M12 22a10 10 0 100-20 10 10 0 000 20zM12 2v20", qr: "M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h3v3h-3zM20 14v.01M14 20h3M20 17v4", link: "M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71", music: "M9 18V5l12-2v13M9 18a3 3 0 11-6 0 3 3 0 016 0zM21 16a3 3 0 11-6 0 3 3 0 016 0z", crop: "M6 2v14a2 2 0 002 2h14M18 22V8a2 2 0 00-2-2H2", sticker: "M15 3H6a3 3 0 00-3 3v12a3 3 0 003 3h8l7-7V6a3 3 0 00-3-3zM21 14h-4a2 2 0 00-2 2v4", text: "M4 7V4h16v3M9 20h6M12 4v16", star: "M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z", filter: "M3 6h18M7 12h10M10 18h4", arch: "M21 8v13H3V8M1 3h22v5H1zM10 12h4", notes: "M4 4h16v16H4zM8 9h8M8 13h5", bell: "M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 01-3.4 0", ban: "M12 22a10 10 0 100-20 10 10 0 000 20zM4.9 4.9l14.2 14.2", flag: "M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1zM4 22v-7", trash: "M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6", grid: "M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z" };
+    const ic = (k, s = 24, w = 1.5) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${k == 'more' ? 3 : w}" stroke-linecap="round" stroke-linejoin="round"><path d="${P[k]}"/></svg>`;
+    const G = ['linear-gradient(135deg,#f4a261,#5a2d0c)', 'linear-gradient(135deg,#e9c46a,#8a5a00)', 'linear-gradient(135deg,#2a9d8f,#0b3d3a)', 'linear-gradient(135deg,#e76f51,#6b1f0f)', 'linear-gradient(135deg,#8ecae6,#1d4e6b)'];
+    const av = (n, g, s = 48, c = '') => `<div class="av ${c}" style="width:${s}px;height:${s}px;${g != null ? 'background:' + G[g] : ''}">${g == null ? n.slice(0, 2).toUpperCase() : ''}</div>`;
+    const C = [['Chidi', 'Are you reaching the office early?', '2:24 PM', 2, 0, 0], ['Amaka', 'Sent the presentation deck over', '1:10 PM', 1, 1, 0], ['Tunde', "I'll pick up the equipment on Monday", '11:45 AM', 0, 2, 1], ['Ngozi', 'The prototypes look very clean', '9:12 AM', 0, 3, 1], ['Emeka', 'Catch you at the product sync', 'Yesterday', 0, null, 0], ['Zainab', 'Sounds good, talk soon!', 'Yesterday', 0, 4, 1], ['Joshua', 'Final contract signed. Thank you!', 'Nov 18', 0, null, 0]];
+    const M = [[0, 'Good morning! Have you looked at the revised layout specs?', '10:41 AM'], [0, 'The team wants to finalize it before noon.', '10:42 AM'], [1, 'Yes, just reviewed them.', '10:44 AM'], [1, 'Everything looks solid. Sending feedback now.', '10:45 AM'], [0, "Awesome! Let's get the final assets packaged.", '10:47 AM']];
+    const $ = s => document.querySelector(s);
+    const FAVS = new Set(['Chidi', 'Amaka', 'Joshua']);
+
+    const MYS = [{ g: 1, v: 6, t: 'Yesterday, 8:45 PM' }], ARC = [['Michelle', "what's going on", 'Yesterday', 0, 4, 1], ['Old project', 'See you then', 'Oct 1', 0, null, 0]];
+
+    let fl = 'All', tab = 'chats', cur = 0, open = null, theme = 'dark', rr = true;
+    const TABS = [['chats', 'Chats', 'chat'], ['updates', 'Updates', 'clock'], ['comm', 'Communities', 'users'], ['calls', 'Calls', 'phone']];
+    let nb = false;
+    const tabbar = () => nb ? '' : `<div class="tb">${TABS.map(t => `<button class="${t[0] == tab ? 'a' : ''}" onclick="sw('${t[0]}')"><i>${ic(t[2])}</i>${t[1]}</button>`).join('')}</div>`;
+    const head = (t, ics) => `<div class="hd"><h1>${t}</h1>${ics}</div>`;
+    const btn = (k, f) => `<button class="ib" onclick="${f}">${ic(k, k == 'search' ? 20 : 24)}</button>`;
+    function chats() {
+      const L = C.map((c, i) => [c, i]).filter(([c, i]) => !c[12] && (fl == 'All' || (fl == 'Unread' && c[3]) || (fl == 'Favorites' && FAVS.has(c[0])))).sort((a, b) => (b[0][13] | 0) - (a[0][13] | 0));
+      return head('Chats', btn('search', "openSr('chats')") + btn('more', 'menu()')) + `<div class="pills">${['All', 'Unread', 'Favorites', 'Groups'].map(x => `<button class="pl ${x == fl ? 'a' : ''}" onclick="fl='${x}';render()">${x}</button>`).join('')}<button class="pl pc" onclick="toast()">${ic('plus', 16)}</button></div><div class="pg"><button class="row" style="height:48px" onclick="openArc()"><span style="width:48px;display:flex;justify-content:center;color:var(--s2)">${ic('arch', 20)}</span><div class="mid nm" style="font-weight:400;font-size:15px;color:var(--s2)">Archived</div><span class="sub" style="flex:none;font-size:14px">${ARC.length}</span></button>${L.length ? L.map(([c, i]) => `<button class="row" data-ci="${i}" onclick="openC(${i})">${av(c[0], c[4])}<div class="mid"><div class="nm">${c[0]}</div><div class="sub">${c[5] ? ic('ck', 16) : ''}<span class="el">${c[1]}</span></div></div><div class="rt ${c[3] ? 'u' : ''}">${c[2]}${c[3] ? `<span class="bdg">${c[3]}</span>` : c[13] ? `<span style="display:flex">${ic('pin', 16)}</span>` : ''}</div></button>`).join('') : '<div class="lab" style="text-align:center;padding-top:40px">Nothing here yet</div>'}</div><button class="fab" onclick="openNc()">${ic('edit')}</button>` + tabbar()
+    }
+    function updates() {
+      const S = [['Bella', 0, 1], ['Ngozi', 3, 0], ['Stella', 2, 0], ['Tunde', 1, 1]]; const Ch = [['Lagos Tech', 2, 'Yesterday', 'Three new startups to watch this week', 1], ['Fixhub News', null, '9/24/26', "We've been building something new", 0]];
+      return head('Updates', btn('search', "openSr('updates')") + btn('more', 'menu()')) + `<div class="pg"><div class="sec">Status</div><div class="sc"><button class="sk ad" onclick="openMys()"><span class="ring" style="border:0;top:14px;padding:0">${av('Me', null, 52)}<span class="pb">${ic('plus', 14, 2.5)}</span></span><span class="n2" style="bottom:12px;text-align:center">Add<br>status</span></button>${S.map((s, i) => `<button class="sk" onclick="viewS(${i})" style="background:${G[s[1]]}"><span class="ring ${s[2] ? 's' : ''}">${av(s[0], s[1], 40)}</span><span class="n2">${s[0]}</span></button>`).join('')}</div><div class="sec">Channels<button class="ex" onclick="openChn()">${ic('grid', 20)}Explore</button></div>${Ch.map(c => `<button class="row"><span class="ring ${c[4] ? '' : 's'}" style="border-width:${c[4] ? 2 : 0}px">${av(c[0], c[1], c[4] ? 48 : 56)}</span><div class="mid"><div class="nm">${c[0]}</div><div class="sub">${ic('img', 18)}<span class="el">${c[3]}</span></div></div><div class="rt">${c[2]}</div></button>`).join('')}</div><button class="fab2" onclick="go('ad')">${ic('edit', 20)}</button><button class="fab" onclick="openSed()">${ic('cam')}</button>` + tabbar()
+    }
+    function comm() { const R = [['Design Team', '3 groups'], ['Fixhub Clients', '5 groups'], ['Gym Circle', '2 groups']]; return head('Communities', btn('search', "openSr('comm')") + btn('more', 'menu()')) + `<div class="pg">${R.map((r, i) => `<button class="row" onclick="openCm(${i})">${av(r[0], i, 48, 'sq')}<div class="mid"><div class="nm">${r[0]}</div><div class="sub">${r[1]}</div></div><span style="color:var(--acl);display:flex">${ic('right', 20)}</span></button>`).join('')}</div><button class="fab">${ic('plus')}</button>` + tabbar() }
+    function calls() {
+      const R = [['Chidi', 'out', 'Today, 2:10 PM', 0, 0], ['Amaka', 'in', 'Today, 1:02 PM', 1, 1], ['Tunde', 'miss', 'Yesterday, 7:39 PM', 2, 0], ['Design Team', 'in', 'Yesterday, 7:29 PM', null, 1], ['Ngozi', 'out', 'Oct 2, 9:06 PM', 3, 0], ['Emeka', 'miss', 'Oct 1, 6:27 PM', null, 0]]; const Q = [['Ngozi', 3], ['Chidi', 0], ['Amaka', 1]];
+      return head('Calls', btn('search', "openSr('calls')") + btn('more', 'menu()')) + `<div class="pg"><div class="qa"><button onclick="openNc('call')"><i>${ic('phone')}</i>Call</button><button onclick="openSch()"><i>${ic('cal')}</i>Schedule</button><button onclick="openKp()"><i>${ic('pad', 24, 3)}</i>Keypad</button>${Q.map(q => `<button>${av(q[0], q[1], 56)}${q[0]}</button>`).join('')}</div><div class="sec">Recent</div>${R.map(r => `<button class="row" style="height:72px" onclick="startCall(ci2('${r[0]}'),${r[4]})">${av(r[0], r[3], 40)}<div class="mid"><div class="nm" style="font-weight:${r[1] == 'miss' ? 700 : 500}">${r[0]}</div><div class="sub">${ic(r[1] == 'out' ? 'out' : 'in', 16)}${r[2]}</div></div><span style="color:var(--acl);display:flex">${ic(r[4] ? 'video' : 'phone')}</span></button>`).join('')}<div style="height:90px"></div></div><button class="fab" onclick="openNc('call')">${ic('phone')}</button>` + tabbar()
+    }
+    const V = { chats, updates, comm, calls };
+    function render() {
+      const p = $('#phone'), was = $('#cv') && $('#cv').classList.contains('on'), ws = $('#st') && $('#st').classList.contains('on');
+      p.innerHTML = `<div class="scr" id="main"><div id="trk">${panes()}</div>${tabbar()}</div>
+<div class="scr push cv ${was ? 'on' : ''}" id="cv"></div>
+<div class="scr push ${ws ? 'on' : ''}" id="st">${settings()}</div>
+<div class="scr push" id="sv"></div>
+<div class="scr push" id="ad">${addS()}</div>
+<div class="scr push" id="tm">${themeS()}</div>
+<div class="scr push" id="ep">${editP()}</div>
+<div class="scr push" id="qr">${qrS()}</div>
+<div class="scr push" id="sr"></div>
+<div class="scr push" id="nc"></div><div class="scr push" id="ci"></div><div class="scr push" id="cm"></div><div class="scr push" id="cl"></div><div class="scr push" id="gn"></div><div class="scr push" id="sbs"></div><div class="scr push" id="kp"></div><div class="scr push" id="mys"></div><div class="scr push" id="sed"></div><div class="scr push" id="chn"></div><div class="scr push" id="scc"></div><div class="scr push" id="arc"></div><div class="scr push" id="mld"></div>
+<div class="dim" id="dim" onclick="shut()"></div>
+<div class="sheet" id="sh"><div class="hdl"></div><div class="grid">${[['img', 'Gallery'], ['cam', 'Camera'], ['doc', 'Document'], ['pin', 'Location'], ['poll', 'Poll'], ['cal', 'Event'], ['user', 'Contact'], ['head', 'Audio']].map(a => `<button onclick="shut();addCard('${a[1]}')"><i>${ic(a[0])}</i>${a[1]}</button>`).join('')}</div><div class="ph">${[0, 1, 2, 3].map(i => `<div style="background:${G[(i + 2) % 5]}"></div>`).join('')}</div></div>`;
+      if (open != null) conv(); pos(false)
+    }
+    function panes() { nb = true; const s = TABS.map(t => `<div class="pane">${V[t[0]]()}</div>`).join(''); nb = false; return s }
+    const tI = () => TABS.findIndex(x => x[0] == tab);
+    function pos(an) { const t = $('#trk'); if (!t) return; t.style.transition = an ? 'transform .3s cubic-bezier(.2,.8,.2,1)' : 'none'; t.style.transform = `translate3d(${-tI() * 25}%,0,0)` }
+    function setTab(i, an) { tab = TABS[i][0]; pos(an); const b = $('#main .tb'); if (b) b.outerHTML = tabbar() }
+    function sw(t) { shut(); setTab(TABS.findIndex(x => x[0] == t), true) }
+    (function () {
+      const ph = $('#phone'); let g = null, sup = false;
+      const over = () => document.querySelector('#phone .scr.push.on');
+      ph.addEventListener('pointerdown', e => { if (e.button > 0 || over() || !e.target.closest('#trk')) return; g = { x: e.clientX, y: e.clientY, lock: 0, id: e.pointerId, lx: e.clientX, lt: performance.now(), v: 0 } });
+      ph.addEventListener('pointermove', e => {
+        if (!g || e.pointerId != g.id) return; const r = ph.getBoundingClientRect(), s = r.width / ph.offsetWidth || 1, dx = (e.clientX - g.x) / s, dy = (e.clientY - g.y) / s, W = $('#main').clientWidth, t = $('#trk'), i = tI();
+        if (!g.lock) { if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy) * 1.2) { g.lock = 1; try { ph.setPointerCapture(e.pointerId) } catch (_) { } t.style.transition = 'none' } else { if (Math.abs(dy) > 8) g = null; return } }
+        const n = performance.now(); if (n - g.lt > 0) { g.v = (e.clientX - g.lx) / s / (n - g.lt) } g.lx = e.clientX; g.lt = n;
+        let tx = dx; if ((i == 0 && dx > 0) || (i == TABS.length - 1 && dx < 0)) tx = dx * .3;
+        t.style.transform = `translate3d(${-i * W + tx}px,0,0)`; g.dx = dx
+      });
+      const end = e => { if (!g || e.pointerId != g.id) return; const k = g; g = null; if (!k.lock) return; sup = true; setTimeout(() => sup = false, 60); const W = $('#main').clientWidth, i = tI(), dx = k.dx || 0; let n = i; if (e.type != 'pointercancel' && (Math.abs(dx) > W * .25 || Math.abs(k.v) > .45)) { n = dx < 0 ? i + 1 : i - 1 } n = Math.max(0, Math.min(TABS.length - 1, n)); setTab(n, true) };
+      ph.addEventListener('pointerup', end); ph.addEventListener('pointercancel', end);
+      ph.addEventListener('click', e => { if (sup) { e.stopPropagation(); e.preventDefault(); sup = false } }, true)
+    })()
+    const MN = { chats: ['New group', 'New broadcast', 'Linked devices', 'Starred', 'Read all', 'Settings'], updates: ['Create channel', 'Status privacy', 'Starred', 'Settings'], comm: ['Settings'], calls: ['Clear call log', 'Scheduled calls', 'Settings'] };
+    function menu() { const m = document.createElement('div'); m.className = 'menu'; m.innerHTML = MN[tab].map(x => `<button onclick="this.parentNode.remove();mact('${x}')">${x}</button>`).join(''); $('#main').append(m); setTimeout(() => addEventListener('click', () => m.remove(), { once: true }), 0) }
+    function go(id) { $('#' + id).classList.add('on') }
+    function back(id) { $('#' + id).classList.remove('on'); if (id == 'cv') { const c = C[open], f = c && c[12]; open = null; if (f) { C.splice(C.indexOf(c), 1); c[12] = 0; ARC.unshift(c); render(); $('#arc').classList.contains('on') && openArc() } } }
+    function openC(i) { open = i; conv(); $('#cv').style.background = C[i][9] || ''; go('cv') }
+    function conv() { const c = C[open]; $('#cv').innerHTML = `<div class="hd"><button class="ib" onclick="back('cv')">${ic('back')}</button><button style="display:flex;align-items:center;gap:12px;flex:1;min-width:0;text-align:left" onclick="openCi()">${av(c[0], c[4], 40)}<div class="mid"><div class="nm">${c[0]}</div><div class="sub" id="ol" style="font-size:12px;color:var(--acl)">${c[6] ? c[6] + ' members' : 'online'}</div></div></button>${btn('video', 'startCall(OP(),1)')}${btn('phone', 'startCall(OP(),0)')}${btn('more', 'cvMenu()')}</div><div class="pg" id="ms"><div class="msgs"><div class="day">Today</div>${M.map(bub).join('')}</div></div><div id="rq"></div><div class="bar"><div class="in">${ic('smile')}<input id="inp" placeholder="Message" oninput="mic()" onkeydown="if(event.key=='Enter')sendM()"><button class="ib" onclick="$('#dim').classList.add('on');$('#sh').classList.add('on')">${ic('clip')}</button><button class="ib" onclick="addCard('Camera')">${ic('cam')}</button></div><button class="snd" id="sb" onclick="sendM()">${ic('mic')}</button></div>`; $('#cv').classList.add('cv'); $('#ms').scrollTop = 9999 }
+    function mic() { $('#sb').innerHTML = ic($('#inp').value.trim() ? 'send' : 'mic') }
+    function shut() { const d = $('#dim'), s = $('#sh'); d && d.classList.remove('on'); s && s.classList.remove('on') }
+    function settings() { const R = ['Account', 'Privacy', 'Chats', 'Notifications', 'Storage and data', 'Linked devices', 'Language', 'Help']; return `<div class="hd"><button class="ib" onclick="back('st')">${ic('back')}</button><h2>Settings</h2><button class="ib" onclick="openQ()">${ic('qr')}</button><button class="ib" style="background:var(--sfa);color:var(--acl)" onclick="go('ep')">${ic('edit', 20)}</button></div><div class="pg"><div class="big">${av(me.name, null, 96)}<div class="nm" style="font-size:22px;font-weight:700">${me.name}</div><div class="sub">@${me.user}</div></div><button class="row set" onclick="go('tm')"><div class="mid nm">Theme</div><span class="sub" id="tl">${ML[theme]}</span></button><button class="row set" onclick="rr=!rr;this.querySelector('.tg').classList.toggle('on')"><div class="mid nm">Read receipts</div><div class="tg ${rr ? 'on' : ''}"></div></button>${R.map(r => `<button class="row set" onclick="openSub('${r}')"><div class="mid nm">${r}</div>${ic('right', 20)}</button>`).join('')}<button class="row set" onclick="ob(0)"><div class="mid nm">Replay intro</div></button></div>` }
+    function th() { theme = theme == 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = theme; $('#tl').textContent = theme == 'dark' ? 'Dark' : 'Light' }
+    function toast(m) { const t = document.createElement('div'); t.textContent = m || 'Coming in the full design'; t.style.cssText = 'position:absolute;left:50%;bottom:100px;transform:translateX(-50%);background:var(--tx);color:var(--bg);padding:10px 18px;border-radius:20px;font-size:14px;z-index:20;white-space:nowrap'; $('#phone').append(t); setTimeout(() => t.remove(), 1400) }
+    const ST = [['Bella', 0], ['Ngozi', 3], ['Stella', 2], ['Tunde', 1]], CP = ['Big things start small', 'Meeting went well today', 'Gym done. Discipline over motivation', 'Weekend plans loading'];
+    let sv = { i: 0, n: 0, t: 0 };
+    function viewS(i) { sv.i = i; sv.n = 0; paintS(); go('sv') }
+    function paintS() { clearTimeout(sv.t); const s = ST[sv.i]; $('#sv').style.background = '#000'; $('#sv').innerHTML = `<div style="position:absolute;inset:0;background:${G[s[1]]};opacity:.55"></div><div style="position:relative;display:flex;flex-direction:column;height:100%;color:#fff"><div class="seg">${[0, 1, 2].map(k => `<i class="${k < sv.n ? 'd' : k == sv.n ? 'c' : ''}"><b></b></i>`).join('')}</div><div class="hd" style="padding-top:8px">${av(s[0], s[1], 40)}<div class="mid"><div class="nm">${s[0]}</div><div class="sub" style="color:#ffffffaa;font-size:13px">Today, 9:${s[1]}0 AM</div></div><button class="ib" onclick="closeS()">${ic('x')}</button></div><div class="cap">${CP[(sv.i + sv.n) % 4]}</div><button class="tz" style="left:0" onclick="prevS()"></button><button class="tz" style="right:0" onclick="nextS()"></button><div class="bar" style="position:relative;z-index:3"><div class="in" style="background:#ffffff26;color:#fff"><input placeholder="Reply" style="color:#fff" onfocus="clearTimeout(sv.t)" onblur="paintS()"></div><button class="snd" onclick="toast('Reply sent')">${ic('send')}</button></div></div>`; sv.t = setTimeout(nextS, 5000) }
+    function nextS() { if (sv.n < 2) { sv.n++; paintS() } else if (sv.i < ST.length - 1) { sv.i++; sv.n = 0; paintS() } else closeS() }
+    function prevS() { if (sv.n > 0) sv.n--; else if (sv.i > 0) { sv.i--; sv.n = 0 } paintS() }
+    function closeS() { clearTimeout(sv.t); back('sv') }
+    function addS() { return `<div class="hd"><button class="ib" onclick="back('ad')">${ic('back')}</button><h2>Add status</h2></div><div class="pg" style="overflow:hidden"><textarea class="ta" id="tx" placeholder="Type a status"></textarea></div><div class="bar" style="align-items:center"><button class="ib" style="background:var(--sf)" onclick="toast()">${ic('img')}</button><button class="ib" style="background:var(--sf)" onclick="toast()">${ic('cam')}</button><div style="flex:1"></div><button class="snd" style="border-radius:16px;width:56px;height:56px" onclick="postS()">${ic('send')}</button></div>` }
+    function postS() { const t = $('#tx'); if (!t.value.trim()) return toast('Type something first'); t.value = ''; back('ad'); MYS.unshift({ g: 2, v: 0, t: 'Just now' }); toast('Status posted') }
+    const ML = { dark: 'Dark', light: 'Light', system: 'System default' };
+    const CL = [null, '#6B6B6B', '#0E7490', '#7E3AA0', '#C2255C', '#1D4ED8', '#0B5394', '#5B3FD1', '#5B8C26', '#0F8F6F', '#0B6B63', '#4B5D44', '#E0B400', '#8B6F4E', '#6B4226', '#9B1C31', '#E58A00', '#C2410C', '#E11D48', '#0EA5E9', '#14B8A6', '#A855F7'];
+    let ac = 0;
+    function lum(c) { const n = parseInt(c.slice(1), 16); return (.299 * (n >> 16) + .587 * ((n >> 8) & 255) + .114 * (n & 255)) }
+    function applyAc() { const r = document.documentElement.style, c = CL[ac]; if (!c) { ['--ac', '--acx', '--sfa', '--acl'].forEach(k => r.removeProperty(k)) } else { r.setProperty('--ac', c); r.setProperty('--acx', lum(c) > 150 ? '#000' : '#fff'); r.setProperty('--sfa', 'color-mix(in srgb,' + c + ' 26%,var(--bg))'); r.setProperty('--acl', 'color-mix(in srgb,' + c + ' 55%,var(--tx))') } }
+    function applyTheme(m, ev) {
+      theme = m; const R = document.documentElement, d = m == 'system' ? matchMedia('(prefers-color-scheme: dark)').matches : m == 'dark', nt = d ? 'dark' : 'light', set = () => { R.dataset.theme = nt; const e = $('#tl'); if (e) e.textContent = ML[m]; shT() };
+      if (R.dataset.theme == nt || matchMedia('(prefers-reduced-motion: reduce)').matches) { set(); return }
+      const x = ev && ev.clientX != null ? ev.clientX : innerWidth / 2, y = ev && ev.clientY != null ? ev.clientY : innerHeight / 2, r = Math.ceil(Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y)));
+      R.classList.add('nt');
+      const o = document.createElement('div'); o.style.cssText = `position:fixed;z-index:9999;pointer-events:none;border-radius:50%;will-change:transform,opacity;background:${d ? '#000' : '#fff'};left:${x - r}px;top:${y - r}px;width:${2 * r}px;height:${2 * r}px`; document.body.append(o);
+      o.animate({ transform: ['scale(0)', 'scale(1)'] }, { duration: 360, easing: 'cubic-bezier(.3,0,.1,1)', fill: 'forwards' }).onfinish = () => { set(); o.animate({ opacity: [1, 0] }, { duration: 140, fill: 'forwards' }).onfinish = () => { o.remove(); R.classList.remove('nt') } }
+    }
+    function cg() { return CL.map((c, i) => `<button class="cc ${i == ac ? 'on' : ''}" style="background:${c || 'var(--tx)'}" onclick="ac=${i};applyAc();$('#cgr').innerHTML=cg()">${i == ac ? `<i style="${c ? '' : 'background:var(--bg);color:var(--tx)'}">${ic('tick', 16, 2.5)}</i>` : ''}</button>`).join('') }
+    function themeS() { return `<div class="hd"><button class="ib" onclick="back('tm')">${ic('back')}</button><h2>App theme</h2></div><div class="pg"><button class="row" onclick="$('#tmd').classList.add('on');$('#tms').classList.add('on')">${ic('half', 28)}<div class="mid"><div class="nm">Dark mode</div><div class="sub" id="tmv">${ML[theme]}</div></div></button><div class="lab">Color</div><div class="cg" id="cgr">${cg()}</div></div><div class="dim" id="tmd" onclick="shT()"></div><div class="sheet" id="tms"><div class="hdl"></div>${['dark', 'light', 'system'].map(m => `<button class="row" style="height:64px" onclick="applyTheme('${m}',event)"><div class="mid nm">${ML[m]}</div><span class="cc ${theme == m ? 'on' : ''}" style="width:22px;height:22px;background:${theme == m ? 'var(--tx)' : 'var(--ol)'}"></span></button>`).join('')}<div style="height:16px"></div></div>` }
+    function shT() { $('#tmd').classList.remove('on'); $('#tms').classList.remove('on'); $('#tm').innerHTML = themeS() }
+    let me = { name: 'David Caleb', about: 'Building something new', user: 'davidcaleb' };
+    function editP() {
+      const F = (l, i, v) => `<div style="padding:0 24px 20px"><div style="font-size:13px;color:var(--s2)">${l}</div><input id="${i}" value="${v}" style="width:100%;background:none;border:0;border-bottom:1px solid var(--ol);outline:0;color:var(--tx);font:17px Inter,sans-serif;padding:8px 0"></div>`;
+      return `<div class="hd"><button class="ib" onclick="back('ep')">${ic('back')}</button><h2>Edit profile</h2></div><div class="pg"><div style="display:flex;justify-content:center;padding:8px 0 28px"><div style="position:relative;width:96px;height:96px">${av(me.name, null, 96)}<span class="pb" style="width:32px;height:32px;right:0;bottom:0">${ic('cam', 18)}</span></div></div>${F('Name', 'epn', me.name)}${F('About', 'epa', me.about)}${F('Username', 'epu', me.user)}</div><div class="bar"><button onclick="saveP()" style="flex:1;height:52px;border-radius:26px;background:var(--ac);color:var(--acx);font-size:16px;font-weight:600">Save</button></div>`
+    }
+    function saveP() { const n = $('#epn').value.trim(), u = $('#epu').value.trim().replace(/^@/, ''); if (!n || !u) return toast('Name and username needed'); me = { name: n, about: $('#epa').value.trim(), user: u }; $('#st').innerHTML = settings(); $('#qr').innerHTML = qrS(); back('ep'); toast('Profile saved') }
+    let qs = 0;
+    const QB = ['#000', 'linear-gradient(160deg,#2c2c2c,#000)', 'linear-gradient(160deg,color-mix(in srgb,var(--ac) 70%,#000),#000)', 'radial-gradient(#ffffff26 1.5px,transparent 1.5px) 0 0/14px 14px,#000'];
+    const qc = () => { const c = CL[ac]; return c && lum(c) < 150 ? c : '#000' };
+    function qrG(s, col) { let x = 0; for (const c of s) x = (x * 31 + c.charCodeAt(0)) >>> 0; const N = 25, r = () => (x = (x * 1664525 + 1013904223) >>> 0) / 4294967296, o = []; for (let i = 0; i < N; i++)for (let j = 0; j < N; j++) { const fi = (i < 7 && j < 7) || (i < 7 && j > N - 8) || (i > N - 8 && j < 7); let on; if (fi) { const a = i < 7 ? i : i - (N - 7), b = j < 7 ? j : j - (N - 7); on = a == 0 || a == 6 || b == 0 || b == 6 || (a >= 2 && a <= 4 && b >= 2 && b <= 4) } else on = r() > .5; if (i >= 10 && i <= 14 && j >= 10 && j <= 14) on = false; if (on) o.push(`<rect x="${j * 10}" y="${i * 10}" width="10" height="10" rx="2"/>`) } return `<svg viewBox="0 0 250 250" width="100%" height="100%" fill="${col}">${o.join('')}</svg>` }
+    function openQ() { $('#qr').innerHTML = qrS(); go('qr') }
+    function qrS() { const q = qc(); return `<div style="position:relative;display:flex;flex-direction:column;height:100%;background:${QB[qs]}"><div class="hd" style="flex:none"><button class="ib" onclick="back('qr')" style="background:#00000066;color:#fff">${ic('back')}</button></div><div class="pg" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding-top:36px"><div style="position:relative;width:240px;background:#fff;border-radius:24px;padding:54px 24px 20px;text-align:center;color:#000"><div style="position:absolute;top:-36px;left:50%;margin-left:-36px;border-radius:50%;box-shadow:0 0 0 4px #fff">${av(me.name, null, 72)}</div><div style="position:relative;width:192px;height:192px;margin:0 auto">${qrG(me.user, q)}<div style="position:absolute;left:50%;top:50%;width:44px;height:44px;margin:-22px;border-radius:50%;background:${q};color:#fff;display:grid;place-items:center;box-shadow:0 0 0 4px #fff">${ic('chat', 22)}</div></div><div style="margin-top:14px;font-size:18px;font-weight:700;color:${q};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">@${me.user.toUpperCase()}</div></div></div><div style="background:var(--sh);border-radius:28px 28px 0 0;border:1px solid var(--ol);border-bottom:0;padding:16px 16px 12px;flex:none"><div style="font-size:18px;font-weight:700;margin-bottom:10px">QR Code</div><div style="display:flex;gap:8px;overflow-x:auto;padding:4px 4px 14px;scrollbar-width:none">${QB.map((b, i) => `<button onclick="qs=${i};$('#qr').innerHTML=qrS()" style="flex:none;width:70px;height:88px;border-radius:12px;background:${b};display:grid;place-items:center;${i == qs ? 'box-shadow:0 0 0 2px var(--sh),0 0 0 4px var(--acl)' : ''}"><span style="width:32px;height:32px;border-radius:8px;background:#fff;color:#000;display:grid;place-items:center">${ic('qr', 20)}</span></button>`).join('')}</div><button onclick="toast('Link copied')" style="width:100%;height:44px;border-radius:22px;background:var(--ac);color:var(--acx);font-size:14px;font-weight:600">Share QR Code</button><button onclick="toast('Camera opens here')" style="width:100%;height:40px;margin-top:4px;display:flex;align-items:center;justify-content:center;gap:8px;color:var(--acl);font-size:14px;font-weight:500">${ic('qr', 20)}Scan QR Code</button></div></div>` }
+    function fit() { const p = $('#phone'); if (innerWidth < 500) { p.removeAttribute('style'); return } const s = Math.min(1.9, Math.max(1, innerHeight / 700)), H = Math.max(560, (innerHeight - 24) / s); p.style.cssText = `position:fixed;left:50%;top:12px;width:420px;max-width:none;height:${H}px;max-height:none;margin:0;transform:translateX(-50%) scale(${s});transform-origin:top center` }
+    addEventListener('resize', fit); fit();
+    let sk = 'chats', sf = null;
+    const CH = [['Unread', 'chat'], ['Photos', 'img'], ['Videos', 'video'], ['Links', 'link'], ['Docs', 'doc'], ['Audio', 'head']];
+    const CR = [['Chidi', 'out', 'Today, 2:10 PM', 0, 0], ['Amaka', 'in', 'Today, 1:02 PM', 1, 1], ['Tunde', 'miss', 'Yesterday, 7:39 PM', 2, 0], ['Design Team', 'in', 'Yesterday, 7:29 PM', null, 1], ['Ngozi', 'out', 'Oct 2, 9:06 PM', 3, 0], ['Emeka', 'miss', 'Oct 1, 6:27 PM', null, 0]];
+    const MD = { Links: [['Design specs', 'specs.example.com/layout', 'link'], ['Meeting notes', 'notes.example.com/q4', 'link'], ['Prototype', 'proto.example.com/app', 'link']], Docs: [['Layout specs.pdf', '1.2 MB', 'doc'], ['Contract.docx', '340 KB', 'doc'], ['Invoice.xlsx', '88 KB', 'doc']], Audio: [['Voice message', '0:34', 'head'], ['Voice message', '1:12', 'head']] };
+    function hl(t, q) { const i = t.toLowerCase().indexOf(q); return i < 0 || !q ? t : t.slice(0, i) + '<b style="color:var(--acl)">' + t.slice(i, i + q.length) + '</b>' + t.slice(i + q.length) }
+    function chips() { const e = $('#sch'); if (e) e.innerHTML = CH.map(c => `<button class="ch ${sf == c[0] ? 'a' : ''}" onclick="sf=sf=='${c[0]}'?null:'${c[0]}';chips();srch()">${ic(c[1], 20)}${c[0]}</button>`).join('') }
+    const none = '<div class="lab" style="text-align:center;padding-top:48px;font-size:15px">No results</div>';
+    function srch() {
+      const q = $('#sq').value.trim().toLowerCase(), r = $('#sres');
+      if (sk == 'calls') {
+        const L = CR.filter(x => !q || x[0].toLowerCase().includes(q));
+        r.innerHTML = (q ? '' : `<div class="qa"><button onclick="openNc('call')"><i>${ic('phone')}</i>Call</button><button onclick="openSch()"><i>${ic('cal')}</i>Schedule</button><button onclick="openKp()"><i>${ic('pad', 24, 3)}</i>Keypad</button>${[['Ngozi', 3], ['Chidi', 0], ['Amaka', 1]].map(x => `<button>${av(x[0], x[1], 56)}${x[0]}</button>`).join('')}</div>`) + (L.length ? '<div class="sec">Recent</div>' + L.map(x => `<button class="row" style="height:72px" onclick="startCall(ci2('${x[0]}'),${x[4]})">${av(x[0], x[3], 40)}<div class="mid"><div class="nm" style="font-weight:${x[1] == 'miss' ? 700 : 500}">${hl(x[0], q)}</div><div class="sub">${ic(x[1] == 'out' ? 'out' : 'in', 16)}${x[2]}</div></div><span style="color:var(--acl);display:flex">${ic(x[4] ? 'video' : 'phone')}</span></button>`).join('') : none); return
+      }
+      if (sf == 'Photos' || sf == 'Videos') { const v = sf == 'Videos'; r.innerHTML = q ? none : `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:2px;padding:4px 0">${[0, 1, 2, 3, 4, 2, 0, 3, 1, 4, 1, 2].map(i => `<div style="aspect-ratio:1;background:${G[i]};position:relative">${v ? `<span style="position:absolute;inset:0;display:grid;place-items:center;color:#fff">${ic('video', 24)}</span>` : ''}</div>`).join('')}</div>`; return }
+      if (sf && MD[sf]) { const L = MD[sf].filter(x => !q || (x[0] + ' ' + x[1]).toLowerCase().includes(q)); r.innerHTML = L.length ? L.map(x => `<button class="row" style="height:68px" onclick="toast()"><span class="ibx">${ic(x[2])}</span><div class="mid"><div class="nm">${hl(x[0], q)}</div><div class="sub">${x[1]}</div></div></button>`).join('') : none; return }
+      if ((sk == 'updates' || sk == 'comm') && sf != 'Unread') { const D = sk == 'comm' ? [['Design Team', 0, '3 groups'], ['Fixhub Clients', 1, '5 groups'], ['Gym Circle', 2, '2 groups']] : [['Bella', 0, 'Status'], ['Ngozi', 3, 'Status'], ['Stella', 2, 'Status'], ['Tunde', 1, 'Status'], ['Lagos Tech', 2, 'Channel'], ['Fixhub News', null, 'Channel']], L = D.filter(x => !q || x[0].toLowerCase().includes(q)); r.innerHTML = L.length ? `<div class="lab">${sk == 'comm' ? 'Communities' : 'Updates and channels'}</div>` + L.map(x => `<button class="row" onclick="toast()">${av(x[0], x[1], 48, sk == 'comm' ? 'sq' : '')}<div class="mid"><div class="nm">${hl(x[0], q)}</div><div class="sub">${x[2]}</div></div></button>`).join('') : none; return }
+      if (!q && sf != 'Unread') { r.innerHTML = '<div class="lab">Recent</div>' + ['Chidi', 'Amaka', 'Contract', 'Layout specs'].map(w => `<button class="row" style="height:60px" onclick="$('#sq').value='${w}';srch()"><span style="color:var(--s2);display:flex">${ic('clock')}</span><div class="mid nm">${w}</div></button>`).join(''); return }
+      const L = C.map((c, i) => [c, i]).filter(([c]) => (sf != 'Unread' || c[3]) && (!q || c[0].toLowerCase().includes(q) || c[1].toLowerCase().includes(q)));
+      r.innerHTML = L.length ? '<div class="lab">Chats</div>' + L.map(([c, i]) => `<button class="row" onclick="openC(${i})">${av(c[0], c[4])}<div class="mid"><div class="nm">${hl(c[0], q)}</div><div class="sub">${hl(c[1], q)}</div></div><div class="rt ${c[3] ? 'u' : ''}">${c[2]}${c[3] ? `<span class="bdg">${c[3]}</span>` : ''}</div></button>`).join('') : none
+    }
+    function openSr(k) { sk = k || 'chats'; sf = null; $('#sr').innerHTML = `<div class="hd" style="padding:8px 16px"><div class="in" style="height:52px"><button class="ib" onclick="back('sr')">${ic('back')}</button><input id="sq" placeholder="${({ chats: 'Search chats', updates: 'Search updates', comm: 'Search communities', calls: 'Name, number, @username' })[sk]}" oninput="srch()" autocomplete="off"></div></div>${sk == 'calls' ? '' : '<div class="pills" id="sch"></div>'}<div class="pg" id="sres"></div>`; chips(); srch(); go('sr'); setTimeout(() => { const e = $('#sq'); e && e.focus() }, 300) }
+    const OP = () => open; const ci2 = n => Math.max(0, C.findIndex(c => c[0] == n));
+    function openNc(m) { const call = m == 'call' || m == 'fwd', fwd = m == 'fwd'; $('#nc').style.zIndex = fwd ? 8 : ''; $('#nc').innerHTML = `<div class="hd"><button class="ib" onclick="back('nc')">${ic('back')}</button><h2>${fwd ? 'Forward to' : call ? 'New call' : 'New chat'}</h2></div><div class="pg">${call ? '' : [['users', 'New group'], ['user', 'New contact'], ['users', 'New community']].map(x => `<button class="row" style="height:68px" onclick="${x[1] == 'New group' ? 'openGrp()' : 'toast()'}"><span class="ibx" style="width:48px;height:48px;border-radius:50%">${ic(x[0])}</span><div class="mid nm">${x[1]}</div></button>`).join('')}<div class="lab">Contacts</div>${C.map((c, i) => `<button class="row" style="height:68px" onclick="${fwd ? `back('nc');toast('Forwarded to ${c[0]}')` : call ? `startCall(${i},0)` : `back('nc');openC(${i})`}">${av(c[0], c[4], 48)}<div class="mid"><div class="nm">${c[0]}</div><div class="sub">Available</div></div></button>`).join('')}</div>`; go('nc') }
+    let ctm = 0, cint = 0, cs = 0;
+    function startCall(i, v, nm) {
+      const c = nm ? [nm, '', '', 0, null, 0] : C[i]; cs = 0; clearInterval(cint); clearTimeout(ctm); const cb = (k, l) => `<button class="cb" onclick="this.classList.toggle('on')">${ic(k, 26)}</button>`;
+      $('#cl').innerHTML = `<div style="height:100%;display:flex;flex-direction:column;align-items:center;color:#fff;background:${v && c[4] != null ? G[c[4]] : '#000'}"><div style="padding-top:72px;text-align:center"><div style="font-size:26px;font-weight:700">${c[0]}</div><div id="cst" style="font-size:16px;opacity:.7;margin-top:6px">${v ? 'Video calling…' : 'Calling…'}</div></div><div style="flex:1;display:grid;place-items:center">${v ? '' : av(c[0], c[4], 140)}</div>${v ? '<div style="position:absolute;top:72px;right:16px;width:88px;height:120px;border-radius:16px;background:#1c1c1c;border:1px solid #3a3a3a"></div>' : ''}<div style="display:flex;gap:16px;padding:0 16px 48px">${cb('mic')}${cb('head')}${cb('video')}<button class="cb" style="background:#fff;color:#000" onclick="endCall()"><span style="display:flex;transform:rotate(135deg)">${ic('phone', 26)}</span></button></div></div>`;
+      go('cl'); ctm = setTimeout(() => { cint = setInterval(() => { cs++; const e = $('#cst'); if (e) e.textContent = String(cs / 60 | 0).padStart(2, '0') + ':' + String(cs % 60).padStart(2, '0') }, 1000); const e = $('#cst'); if (e) e.textContent = '00:00' }, 1500)
+    }
+    function endCall() { clearInterval(cint); clearTimeout(ctm); back('cl') }
+    function openCi() { const c = C[open]; $('#ci').innerHTML = `<div class="hd"><button class="ib" onclick="back('ci')">${ic('back')}</button></div><div class="pg"><div class="big">${av(c[0], c[4], 120)}<div class="nm" style="font-size:24px;font-weight:700">${c[0]}</div><div class="sub" style="justify-content:center;color:var(--acl)">${c[6] ? c[6] + ' members' : 'online'}</div></div><div class="qa" style="justify-content:center;gap:20px"><button onclick="startCall(OP(),0)"><i style="width:64px;height:32px;border-radius:16px">${ic('phone', 20)}</i>Voice</button><button onclick="startCall(OP(),1)"><i style="width:64px;height:32px;border-radius:16px">${ic('video', 20)}</i>Video</button><button onclick="back('ci')"><i style="width:64px;height:32px;border-radius:16px">${ic('chat', 20)}</i>Chat</button></div>${[['Notifications', 1], ['Disappearing messages', 0]].map(x => `<button class="row set" onclick="this.querySelector('.tg').classList.toggle('on')"><div class="mid nm">${x[0]}</div><div class="tg ${x[1] ? 'on' : ''}"></div></button>`).join('')}<button class="row set" onclick="toast('Media and files')"><div class="mid nm">Media and files</div>${ic('right', 20)}</button><button class="row set" onclick="toast('${c[0]} blocked');back('ci')"><div class="mid nm">Block</div></button></div>`; go('ci') }
+    function openCm(i) { const n = ['Design Team', 'Fixhub Clients', 'Gym Circle'][i], G2 = [['Announcements', 'Updates from admins'], ['General', '12 members'], ['Projects', '8 members']]; $('#cm').innerHTML = `<div class="hd"><button class="ib" onclick="back('cm')">${ic('back')}</button></div><div class="pg"><div class="big">${av(n, i, 96, 'sq')}<div class="nm" style="font-size:24px;font-weight:700">${n}</div><div class="sub" style="justify-content:center">Community</div></div>${G2.map((g, k) => `<button class="row" onclick="openC(${(i + k) % C.length})"><span class="ibx" style="width:48px;height:48px">${ic(k ? 'users' : 'chat')}</span><div class="mid"><div class="nm">${g[0]}</div><div class="sub">${g[1]}</div></div></button>`).join('')}</div>`; go('cm') }
+    function cvMenu() { document.querySelectorAll('.menu').forEach(m => m.remove()); const m = document.createElement('div'); m.className = 'menu'; const A = [['View contact', "openCi()"], ['Clear chat', "clr()"], ['Close chat', "back('cv')"]]; m.innerHTML = A.map(a => `<button onclick="this.parentNode.remove();${a[1]}">${a[0]}</button>`).join(''); $('#cv').append(m); setTimeout(() => addEventListener('click', () => m.remove(), { once: true }), 0) }
+    const esc = s => s.replace(/</g, '&lt;'), now = () => new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    let rp = null;
+    const PL = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M6 4l14 8-14 8z"/></svg>';
+    function card(x, i) {
+      const r = (a) => `<div class="cd" style="display:flex;gap:10px;align-items:center">${a}</div>`;
+      if (x.t == 'img') return `<div class="cd" style="height:140px;border-radius:8px;background:${G[(x.g || 0) % 5]};margin-bottom:4px"></div>`;
+      if (x.t == 'doc') return r(`<span class="ibx">${ic('doc')}</span><div style="min-width:0"><div style="font-weight:500">Project brief.pdf</div><div style="font-size:12px;opacity:.6">1.2 MB</div></div>`);
+      if (x.t == 'loc') return `<div class="cd"><div style="height:90px;border-radius:8px;background:repeating-linear-gradient(45deg,#2a2a2a,#2a2a2a 8px,#343434 8px,#343434 16px);display:grid;place-items:center;color:#fff">${ic('pin', 28)}</div><div style="margin-top:6px;font-weight:500">Current location</div></div>`;
+      if (x.t == 'con') return r(`${av('Chidi', 0, 40)}<div><div style="font-weight:500">Chidi</div><div style="font-size:12px;opacity:.6">Contact</div></div>`);
+      if (x.t == 'evt') return r(`<span class="ibx">${ic('cal')}</span><div><div style="font-weight:500">Team meeting</div><div style="font-size:12px;opacity:.6">Fri, 10:00 AM</div></div>`);
+      if (x.t == 'vn') return r(`<span class="ibx" style="border-radius:50%">${PL}</span><div style="display:flex;gap:2px;align-items:center;flex:1">${[...Array(18)].map((_, k) => `<i style="width:3px;height:${6 + (k * 7) % 16}px;background:currentColor;opacity:.55;border-radius:2px"></i>`).join('')}</div><span style="font-size:12px;opacity:.6">0:07</span>`);
+      if (x.t == 'poll') return `<div class="cd"><div style="font-weight:600;margin-bottom:6px">Lunch today?</div>${['Jollof rice', 'Pizza'].map((o, k) => `<button onclick="vote(${i},${k})" style="display:block;width:100%;text-align:left;padding:7px 0;border-bottom:1px solid #8884;${x.my == k ? 'font-weight:700' : ''}">${o}<span style="float:right">${(x.v || [0, 0])[k]}</span></button>`).join('')}</div>`;
+      return ''
+    }
+    function bub(m, i, a) { const f = !i || a[i - 1][0] != m[0], x = m[3] || {}; const body = x.d ? '<i style="opacity:.6">This message was deleted</i>' : (x.q ? `<div class="qt">${x.q}</div>` : '') + card(x, i) + m[1]; return `<div class="b ${m[0] ? 'me' : 'th'} ${f ? 'f' : ''}" data-i="${i}">${body}<span>${x.s ? '★ ' : ''}${m[2]}${m[0] ? ic('ck', 14) : ''}</span>${(x.r || x.o) && !x.d ? `<em class="rx" onclick="event.stopPropagation();rxSheet(${i})">${rxT(x)}</em>` : ''}</div>` }
+    function paintM() { const e = document.querySelector('.msgs'); if (e) { e.innerHTML = '<div class="day">Today</div>' + M.map(bub).join(''); $('#ms').scrollTop = 9999 } }
+    function addCard(k) { const T = { Gallery: 'img', Camera: 'img', Document: 'doc', Location: 'loc', Poll: 'poll', Event: 'evt', Contact: 'con', Audio: 'vn' }; M.push([1, '', now(), { t: T[k], g: M.length }]); paintM() }
+    function vote(i, k) { const x = M[i][3]; x.v = x.v || [0, 0]; if (x.my != null) x.v[x.my]--; x.my = x.my === k ? null : k; if (x.my != null) x.v[k]++; paintM() }
+    function showRq() { const e = $('#rq'); if (e) e.innerHTML = rp == null ? '' : `<div style="margin:0 12px 8px;padding:8px 12px;border-left:3px solid var(--acl);background:var(--sfa);border-radius:10px;display:flex;align-items:center;gap:8px"><div class="mid"><div class="sub" style="color:var(--acl)">Reply</div><div class="sub">${M[rp][1] || 'Attachment'}</div></div><button class="ib" onclick="rp=null;showRq()">${ic('x', 20)}</button></div>` }
+    function sendM() {
+      const v = $('#inp').value.trim(); if (!v) { addCard('Audio'); return } const t = now(), x = {}; if (rp != null) { x.q = M[rp][1] || 'Attachment'; rp = null; showRq() } M.push([1, esc(v), t, x]); $('#inp').value = ''; mic(); paintM();
+      const ol = $('#ol'), d = document.querySelector('.msgs'); if (ol) ol.textContent = 'typing…'; if (d) { d.insertAdjacentHTML('beforeend', '<div class="b th" id="tp"><span class="dots" style="float:none;margin:0;opacity:1"><i></i><i></i><i></i></span></div>'); $('#ms').scrollTop = 9999 }
+      setTimeout(() => { const p = $('#tp'); if (p) p.remove(); M.push([0, 'Got it 👍🏾', now(), {}]); paintM(); const o = $('#ol'); if (o) o.textContent = 'online' }, 1100)
+    }
+    const clo = () => { const o = $('#mo'); if (o) o.remove() };
+    function msgMenu(i) {
+      const m = M[i], x = m[3] || (m[3] = {}), me = m[0] == 1, al = me ? 'flex-end' : 'flex-start'; clo(); const o = document.createElement('div'); o.id = 'mo'; o.style.cssText = `position:absolute;inset:0;z-index:30;background:#000c;display:flex;flex-direction:column;justify-content:center;align-items:${al};padding:0 16px;gap:12px`;
+      o.innerHTML = `<div style="background:var(--sh);border:1px solid var(--ol);border-radius:28px;padding:6px 8px;display:flex;gap:2px">${['👍🏾', '❤️', '😂', '😮', '😢', '🙏🏾'].map(e => `<button style="font-size:24px;width:40px;height:40px" onclick="react(${i},'${e}')">${e}</button>`).join('')}<button style="width:40px;height:40px;border-radius:50%;background:var(--sf);display:grid;place-items:center" onclick="emPick(${i})">${ic('plus', 20)}</button></div><div style="max-width:100%;display:flex;flex-direction:column;align-items:${al}">${bub(m, i, M).replace('data-i', 'data-x')}</div><div class="menu" id="mm" style="position:static;animation:none">${menuItems(i)}</div>`;
+      o.onclick = e => { if (e.target === o) clo() }; $('#cv').append(o)
+    }
+    function menuItems(i) { const A = [['Reply', 'r'], ['Copy', 'c'], ['Forward', 'f'], [(M[i][3] || {}).s ? 'Unstar' : 'Star', 's'], ['Delete', 'd']]; return A.map(a => `<button onclick="act('${a[1]}',${i})">${a[0]}</button>`).join('') }
+    function react(i, e) { const x = M[i][3] || (M[i][3] = {}); x.r = x.r == e ? '' : e; clo(); paintM() }
+    function act(a, i) {
+      const m = M[i], x = m[3] || (m[3] = {});
+      if (a == 'r') { clo(); rp = i; showRq(); const e = $('#inp'); if (e) e.focus() }
+      else if (a == 'c') { clo(); try { navigator.clipboard.writeText(m[1] || '').catch(() => { }) } catch (_) { } toast('Copied') }
+      else if (a == 'f') { clo(); openNc('fwd') }
+      else if (a == 's') { x.s = !x.s; clo(); paintM(); toast(x.s ? 'Starred' : 'Unstarred') }
+      else if (a == 'd') { $('#mm').innerHTML = `<button onclick="act('dm',${i})">Delete for me</button>${m[0] ? `<button onclick="act('de',${i})">Delete for everyone</button>` : ''}<button onclick="clo()">Cancel</button>` }
+      else if (a == 'dm') { clo(); M.splice(i, 1); paintM() }
+      else if (a == 'de') { clo(); x.d = 1; paintM() }
+    }
+    (function () {
+      let lp = 0, sx = 0, sy = 0; const ph = $('#phone');
+      ph.addEventListener('pointerdown', e => { const b = e.target.closest('#cv .b[data-i]'); if (!b) return; sx = e.clientX; sy = e.clientY; clearTimeout(lp); lp = setTimeout(() => { lp = 0; msgMenu(+b.dataset.i) }, 380) });
+      ph.addEventListener('pointermove', e => { if (lp && Math.hypot(e.clientX - sx, e.clientY - sy) > 8) { clearTimeout(lp); lp = 0 } });
+      ['pointerup', 'pointercancel'].forEach(ev => ph.addEventListener(ev, () => { clearTimeout(lp); lp = 0 }));
+      ph.addEventListener('contextmenu', e => { const b = e.target.closest('#cv .b[data-i]'); if (b) { e.preventDefault(); msgMenu(+b.dataset.i) } })
+    })();
+    render();
+    (function () { const sp = document.createElement('div'); sp.id = 'splash'; sp.innerHTML = '<div class="lg"><div style="width:96px;height:96px;background:currentColor;-webkit-mask:url(data:image/png;base64,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) center/contain no-repeat;mask:url(data:image/png;base64,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) center/contain no-repeat"></div></div><div class="fr"><small>from</small><b>Nozibi</b></div>'; window.LGH = sp.querySelector('.lg>div').outerHTML; $('#phone').append(sp); const q = matchMedia('(prefers-reduced-motion: reduce)').matches; setTimeout(() => { sp.classList.add('out'); setTimeout(() => sp.remove(), 450) }, q ? 500 : 1700) })();
+
+    function dlg(t, s, B) { const o = document.createElement('div'); o.id = 'dlg'; o.style.cssText = 'position:absolute;inset:0;z-index:60;background:#000b;display:grid;place-items:center'; o.innerHTML = `<div style="background:var(--sf);border-radius:24px;padding:24px;width:280px"><div style="font-size:18px;font-weight:700">${t}</div><div style="color:var(--s2);margin:8px 0 12px;font-size:15px">${s}</div>${B.map((b, i) => `<button style="display:block;width:100%;height:44px;border-radius:22px;margin-top:8px;font-size:15px;font-weight:600;${i == B.length - 1 ? 'border:1px solid var(--ol)' : 'background:var(--ac);color:var(--acx)'}">${b[0]}</button>`).join('')}</div>`;[...o.querySelectorAll('button')].forEach((e, i) => e.onclick = () => { o.remove(); B[i][1] && B[i][1]() }); $('#phone').append(o) }
+    let GS = new Set();
+    function openGrp(pre) { GS = new Set(pre == null ? [] : [pre]); $('#nc').style.zIndex = 8; $('#nc').innerHTML = `<div class="hd"><button class="ib" onclick="back('nc')">${ic('back')}</button><h2>New group</h2></div><div class="pg">${C.map((c, i) => `<button class="row" style="height:68px" onclick="GS.has(${i})?GS.delete(${i}):GS.add(${i});this.querySelector('.ck').classList.toggle('on');this.querySelector('.ck').innerHTML=GS.has(${i})?ic('tick',14,3):''">${av(c[0], c[4], 48)}<div class="mid nm">${c[0]}</div><span class="ck ${GS.has(i) ? 'on' : ''}">${GS.has(i) ? ic('tick', 14, 3) : ''}</span></button>`).join('')}</div><div class="bar"><button onclick="gname()" style="flex:1;height:52px;border-radius:26px;background:var(--ac);color:var(--acx);font-size:16px;font-weight:600">Next</button></div>`; go('nc') }
+    function gname() { if (!GS.size) return toast('Pick members'); $('#gn').innerHTML = `<div class="hd"><button class="ib" onclick="back('gn')">${ic('back')}</button><h2>Group name</h2></div><div class="pg" style="padding:24px"><input id="gnm" placeholder="Group name" style="width:100%;background:none;border:0;border-bottom:1px solid var(--ol);outline:0;color:var(--tx);font:22px Inter,sans-serif;padding:12px 0"><div class="sub" style="margin-top:12px">${GS.size} members selected</div></div><div class="bar"><button onclick="mkGrp()" style="flex:1;height:52px;border-radius:26px;background:var(--ac);color:var(--acx);font-size:16px;font-weight:600">Create</button></div>`; go('gn') }
+    function mkGrp() { const n = $('#gnm').value.trim(); if (!n) return toast('Name your group'); C.unshift([n, 'You created this group', 'Now', 0, 3, 0, GS.size + 1]); back('gn'); back('nc'); render(); openC(0) }
+    const SUB = { Account: [['Your number', '@NUM'], ['Two-step PIN', '', 't1'], ['Log out', '', 'lo'], ['Delete account', '', 'da']], Privacy: [['Last seen', 'Everyone', 'cy'], ['Profile photo', 'Everyone', 'cy'], ['About', 'My contacts', 'cy'], ['Blocked contacts', '2']], Chats: [['Enter is send', '', 't1'], ['Media visibility', '', 't1'], ['Archive behavior', '', 't0']], Notifications: [['Messages', '', 't1'], ['Groups', '', 't1'], ['Calls', '', 't1'], ['Vibrate', '', 't0']], 'Storage and data': [['Photos', 'Wi-Fi and mobile', 'cy'], ['Videos', 'Wi-Fi only', 'cy'], ['Data saver', '', 't0']], 'Linked devices': [['Link a device', ''], ['No linked devices', '']], Language: [['English', '', 't1']], Help: [['Help center'], ['Contact us'], ['App version', '1.0']] };
+    function cyc(b) { const s = b.querySelector('.sub'), t = s.textContent, L = [['Everyone', 'My contacts', 'Nobody'], ['Wi-Fi only', 'Wi-Fi and mobile']].find(x => x.includes(t)) || [t]; s.textContent = L[(L.indexOf(t) + 1) % L.length] }
+    function clr() { dlg('Clear chat?', 'All messages in this chat will be removed.', [['Clear', () => { M.length = 0; paintM() }], ['Cancel']]) }
+    function openSub(n) { const R = SUB[n]; $('#sbs').innerHTML = `<div class="hd"><button class="ib" onclick="back('sbs')">${ic('back')}</button><h2>${n}</h2></div><div class="pg">${n == 'Storage and data' ? '<div style="padding:8px 16px 16px"><div style="height:10px;border-radius:5px;background:var(--ol);overflow:hidden"><div style="width:42%;height:100%;background:var(--ac)"></div></div><div class="sub" style="margin-top:8px">1.2 GB of 2.9 GB used</div></div>' : ''}${R.map(r => r[2] && r[2][0] == 't' ? `<button class="row set" onclick="this.querySelector('.tg').classList.toggle('on')"><div class="mid nm">${r[0]}</div><div class="tg ${r[2] == 't1' ? 'on' : ''}"></div></button>` : `<button class="row set" onclick="${r[2] == 'cy' ? 'cyc(this)' : r[2] == 'lo' ? "dlg('Log out?','You will need your number to log back in.',[['Log out',()=>{back('sbs');back('st');toast('Logged out')}],['Cancel']])" : r[2] == 'da' ? "dlg('Delete account?','This removes your account and chats.',[['Delete',()=>toast('Not available in preview')],['Cancel']])" : 'toast()'}"><div class="mid nm">${r[0]}</div>${r[1] ? `<span class="sub" style="flex:none">${r[1] == '@NUM' ? me.num : r[1]}</span>` : ''}</button>`).join('')}</div>`; go('sbs') }
+    function openStar() { const L = M.filter(m => (m[3] || {}).s && !(m[3] || {}).d); $('#sbs').innerHTML = `<div class="hd"><button class="ib" onclick="back('sbs')">${ic('back')}</button><h2>Starred</h2></div><div class="pg">${L.length ? L.map(m => `<div class="row" style="height:auto;padding:14px 16px"><div class="mid"><div class="nm">${m[1] || 'Attachment'}</div><div class="sub">${m[2]}</div></div>${ic('pin', 18)}</div>`).join('') : '<div class="lab" style="text-align:center;padding-top:60px;font-size:15px">No starred messages</div>'}</div>`; go('sbs') }
+    function mact(x) { x == 'Read all' ? (C.forEach(c => c[3] = 0), render(), toast('All chats read')) : x == 'Settings' ? go('st') : x == 'Starred' ? openStar() : x == 'New group' ? openGrp() : x == 'Clear call log' ? dlg('Clear call log?', 'This removes all recent calls.', [['Clear', () => toast('Call log cleared')], ['Cancel']]) : toast() }
+    function openKp() { let n = ''; $('#kp').innerHTML = `<div class="hd"><button class="ib" onclick="back('kp')">${ic('back')}</button></div><div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:14px;padding-bottom:32px"><div id="kpn" style="height:44px;font-size:32px;font-weight:600;letter-spacing:2px"></div><div style="display:grid;grid-template-columns:repeat(3,72px);gap:14px">${['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#'].map(k => `<button class="key" data-k="${k}" style="display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1">${k}<small style="font-size:10px;letter-spacing:2px;color:var(--s2);height:11px;margin-top:2px">${({ 2: 'ABC', 3: 'DEF', 4: 'GHI', 5: 'JKL', 6: 'MNO', 7: 'PQRS', 8: 'TUV', 9: 'WXYZ', 0: '+' })[k] || ''}</small></button>`).join('')}</div><div style="display:flex;gap:28px;align-items:center;margin-top:8px"><span style="width:60px"></span><button class="cb" id="kpc" style="background:var(--ac);color:var(--acx)">${ic('phone', 26)}</button><button class="ib" id="kpd" style="width:60px;height:60px">${ic('x', 26)}</button></div></div>`; const sh = () => $('#kpn').textContent = n; $('#kp').querySelectorAll('.key').forEach(b => b.onclick = () => { n += b.dataset.k; sh() }); $('#kpd').onclick = () => { n = n.slice(0, -1); sh() }; $('#kpc').onclick = () => n ? startCall(0, 0, n) : toast('Enter a number'); go('kp') }
+    function openSch() { $('#sbs').innerHTML = `<div class="hd"><button class="ib" onclick="back('sbs')">${ic('back')}</button><h2>Schedule call</h2></div><div class="pg"><div class="lab">Pick a contact</div>${C.map(c => `<button class="row" style="height:68px" onclick="back('sbs');toast('Call with ${c[0]} set for 9:00 AM')">${av(c[0], c[4], 48)}<div class="mid nm">${c[0]}</div></button>`).join('')}</div>`; go('sbs') }
+    let pin = '';
+    const genNum = () => 'MX-234-' + String(Math.floor(Math.random() * 1e8)).padStart(8, '0'); me.num = genNum();
+    function ob(s) {
+      let o = $('#ob'); if (!o) { o = document.createElement('div'); o.id = 'ob'; o.style.cssText = 'position:absolute;inset:0;z-index:90;background:var(--bg);color:var(--tx);display:flex;flex-direction:column'; $('#phone').append(o) }
+      const B = (t, f) => `<button onclick="${f}" style="width:100%;height:52px;border-radius:26px;background:var(--ac);color:var(--acx);font-size:16px;font-weight:600">${t}</button>`, I = (id, ph, v) => `<input id="${id}" placeholder="${ph}" value="${v || ''}" style="width:100%;background:none;border:0;border-bottom:1px solid var(--ol);outline:0;color:var(--tx);font:22px Inter,sans-serif;padding:12px 0">`,
+        H = `<div class="hd"><button class="ib" onclick="ob(${s - 1})">${ic('back')}</button><div style="flex:1;display:flex;gap:6px;justify-content:center;margin-right:40px">${[1, 2, 3, 4].map(k => `<i style="width:${k == s ? 22 : 8}px;height:8px;border-radius:4px;background:${k <= s ? 'var(--tx)' : 'var(--ol)'}"></i>`).join('')}</div></div>`,
+        T = t => `<div style="font-size:28px;font-weight:700;margin-bottom:20px">${t}</div>`, P = (t, i, b) => `${H}<div style="flex:1;padding:24px">${T(t)}${i}</div><div style="padding:0 24px 40px">${b}</div>`;
+      if (s == 0) o.innerHTML = `<div style="flex:1;display:grid;place-items:center">${window.LGH || ''}</div><div style="padding:0 24px 40px;text-align:center"><div style="color:var(--s2);margin-bottom:16px">Message simply.</div>${B('Get started', 'ob(1)')}</div>`;
+      else if (s == 1) o.innerHTML = P('Your number', `<div id="obn1" style="font-size:30px;font-weight:700;letter-spacing:1px;margin:8px 0 20px">${me.num}</div><button class="pl" style="display:flex;align-items:center;gap:8px" onclick="me.num=genNum();$('#obn1').textContent=me.num">${ic('clock', 18)}New number</button><div class="sub" style="margin-top:16px;white-space:normal">This is your number in the app. Share it with friends so they can find you.</div>`, B('Next', 'ob(2)'));
+      else if (s == 2) o.innerHTML = P('Pick a username', I('obu', 'username', me.user), B('Next', "$('#obu').value.trim().length<3?toast('At least 3 characters'):(me.user=$('#obu').value.trim().replace(/^@/,''),ob(3))"));
+      else if (s == 3) o.innerHTML = P('Your profile', `<div style="display:grid;place-items:center;margin-bottom:24px">${av(me.name, null, 96)}</div>` + I('obn', 'Your name', me.name), B('Next', "$('#obn').value.trim()?(me.name=$('#obn').value.trim(),pin='',ob(4)):toast('Enter your name')"));
+      else { pin = s == 4 ? pin : ''; o.innerHTML = `${H}<div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:24px;gap:24px">${T('Set a PIN')}<div style="display:flex;gap:14px">${[0, 1, 2, 3, 4, 5].map(k => `<i class="pd" style="width:14px;height:14px;border-radius:50%;border:2px solid var(--ol)"></i>`).join('')}</div><div style="display:grid;grid-template-columns:repeat(3,72px);gap:14px;margin-top:8px">${['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '<'].map(k => k ? `<button class="key" data-k="${k}">${k == '<' ? ic('x', 24) : k}</button>` : '<span></span>').join('')}</div><button onclick="obDone()" style="color:var(--s2);font-size:15px;margin-top:8px">Skip</button></div>`; o.querySelectorAll('.key').forEach(b => b.onclick = () => { const k = b.dataset.k; pin = k == '<' ? pin.slice(0, -1) : pin.length < 6 ? pin + k : pin; o.querySelectorAll('.pd').forEach((d, i) => d.style.background = i < pin.length ? 'var(--tx)' : 'none'); if (pin.length == 6) setTimeout(obDone, 200) }) }
+    }
+    function obDone() { try { localStorage.setItem('ob', '1') } catch (e) { } const o = $('#ob'); o && o.remove(); $('#st').innerHTML = settings(); $('#qr').innerHTML = qrS(); $('#ep').innerHTML = editP() }
+    try { if (!localStorage.getItem('ob')) ob(0) } catch (e) { }
+    function openMys() { $('#mys').innerHTML = `<div class="hd"><button class="ib" onclick="back('mys')">${ic('back')}</button><h2>My status</h2></div><div class="pg">${MYS.length ? MYS.map((s, i) => `<div class="row" style="height:84px">${av('M', s.g, 56)}<div class="mid"><div class="nm">${s.v} views</div><div class="sub">${s.t}</div></div><button class="ib" onclick="dlg('Delete status?','This status will be removed.',[['Delete',()=>{MYS.splice(${i},1);openMys()}],['Cancel']])">${ic('more')}</button></div>`).join('') : '<div class="lab" style="text-align:center;padding-top:60px;font-size:15px">No status yet</div>'}</div><button class="fab2" style="bottom:96px" onclick="go('ad')">${ic('edit', 20)}</button><button class="fab" style="bottom:32px" onclick="openSed()">${ic('cam')}</button>`; go('mys') }
+    let sed = { g: 0, f: 0, m: null, tx: '' }; const FL = ['none', 'grayscale(1)', 'sepia(.8)', 'contrast(1.4) saturate(1.3)'], FN = ['Filters', 'Mono', 'Warm', 'Vivid'];
+    function openSed() { sed = { g: Math.floor(Math.random() * 5), f: 0, m: null, tx: '' }; paintSed(); go('sed') }
+    function paintSed() {
+      const t = (k, f) => `<button style="width:44px;height:44px;border-radius:50%;background:#0008;color:#fff;display:grid;place-items:center;flex:none" onclick="${f}">${ic(k, 22)}</button>`;
+      $('#sed').innerHTML = `<div style="position:absolute;inset:0;background:${G[sed.g]};filter:${FL[sed.f]}"></div><div style="position:relative;height:100%;display:flex;flex-direction:column;color:#fff"><div class="hd" style="padding-top:8px;gap:6px">${t('x', "back('sed')")}<div style="flex:1"></div>${t('music', 'openMus()')}${t('crop', "toast('Crop')")}${t('sticker', "toast('Stickers')")}${t('text', 'sedTx()')}${t('edit', "toast('Draw')")}</div><div id="sdt" style="flex:1;display:grid;place-items:center;padding:24px;text-align:center;font-size:32px;font-weight:700;outline:0">${sed.tx}</div>${sed.m ? `<div style="align-self:center;background:#0008;padding:6px 14px;border-radius:16px;font-size:14px">♪ ${sed.m}</div>` : ''}<button onclick="sed.f=(sed.f+1)%4;paintSed()" style="align-self:center;font-size:14px;padding:12px">⌃ ${FN[sed.f]}</button><div class="bar" style="flex-direction:column;gap:10px"><div class="in" style="background:#000a;color:#fff"><input placeholder="Add a caption…" style="color:#fff"></div><div style="display:flex;align-items:center;justify-content:space-between"><span style="background:#000a;padding:10px 14px;border-radius:20px;font-size:14px">Status (Contacts)</span><button class="snd" style="border-radius:16px" onclick="sedSend()">${ic('send')}</button></div></div></div>`
+    }
+    function sedTx() { const e = $('#sdt'); e.contentEditable = 'true'; e.focus(); e.onblur = () => { sed.tx = e.textContent } }
+    function sedSend() { MYS.unshift({ g: sed.g, v: 0, t: 'Just now' }); back('sed'); toast('Status posted'); if ($('#mys').classList.contains('on')) openMys() }
+    const SONGS = [['Aanu Ni', 'BisiManuel', '3:42'], ['Back Outside', 'BNXN, Sarz', '3:31'], ['MCBH', 'Asake', '2:50'], ['B4 B4', 'Davido, Mayorkun', '2:46'], ['Colorado', 'Johnny Drille', '3:42']], ST2 = new Set(); let mf = 'Suggested', mq = '';
+    function openMus() {
+      let o = $('#mus'); if (!o) { o = document.createElement('div'); o.id = 'mus'; o.style.cssText = 'position:absolute;inset:60px 0 0;z-index:30;background:var(--sh);border-radius:28px 28px 0 0;display:flex;flex-direction:column;color:var(--tx)'; $('#sed').append(o) }
+      o.innerHTML = `<div class="hdl"></div><div style="padding:0 16px"><div class="in" style="height:48px;background:var(--bg)">${ic('search')}<input placeholder="Search songs" value="${mq}" oninput="mq=this.value.toLowerCase();mlist()"></div></div><div class="pills" style="padding-top:12px">${['Suggested', 'Mood', 'Genre', 'Starred'].map(x => `<button class="pl ${x == mf ? 'a' : ''}" onclick="mf='${x}';openMus()">${x}</button>`).join('')}</div><div class="pg" id="mlist"></div>`; mlist()
+    }
+    function mlist() { const L = SONGS.filter(s => (!mq || (s[0] + s[1]).toLowerCase().includes(mq)) && (mf != 'Starred' || ST2.has(s[0]))); $('#mlist').innerHTML = L.map((s, i) => `<div class="row" style="height:72px"><span style="width:48px;height:48px;border-radius:8px;background:${G[i % 5]};flex:none"></span><div class="mid"><div class="nm">${s[0]}</div><div class="sub">${s[1]} · ${s[2]}</div></div><button class="ib" style="${ST2.has(s[0]) ? 'color:var(--acl)' : ''}" onclick="ST2.has('${s[0]}')?ST2.delete('${s[0]}'):ST2.add('${s[0]}');mlist()">${ic('star', 22)}</button><button class="ib" style="background:var(--sf)" onclick="sed.m='${s[0]}';$('#mus').remove();paintSed()">${ic('right', 20)}</button></div>`).join('') || '<div class="lab" style="text-align:center">No songs</div>' }
+    const CHL = [['Lagos Tech', '2.1M'], ['Naija Football', '4.1M'], ['Daily Devotion', '890K'], ['Afrobeats Weekly', '1.2M'], ['Business Hub', '560K'], ['Fixhub News', '12K']], FOL = new Set(), REG = ['Nigeria', 'Ghana', 'Kenya', 'South Africa', 'Egypt', 'Ethiopia', 'Tanzania', 'Uganda']; let rg = 'Nigeria', sall = 0;
+    function openChn() { $('#chn').innerHTML = `<div class="hd"><button class="ib" onclick="back('chn')">${ic('back')}</button><h2>Channels</h2><button class="ib" onclick="regSh()">${ic('filter')}</button></div><div style="padding:0 16px 8px"><div class="in" style="height:48px">${ic('search')}<input id="cq" placeholder="Search…" oninput="chl()"></div></div><div class="sec" style="font-size:18px">Explore channels<button class="ex" style="height:36px;font-size:14px" onclick="sall=!sall;chl()">See all</button></div><div class="pg" id="chl"></div>`; chl(); go('chn') }
+    function chl() { const q = $('#cq').value.toLowerCase(), L = CHL.filter(c => c[0].toLowerCase().includes(q)).slice(0, sall ? 9 : 4); $('#chl').innerHTML = L.map((c, i) => `<div class="row" style="height:76px">${av(c[0], i, 48)}<div class="mid"><div class="nm">${c[0]} <span style="display:inline-grid;place-items:center;width:16px;height:16px;border-radius:50%;background:var(--ac);color:var(--acx);vertical-align:-2px">${ic('tick', 10, 3)}</span></div><div class="sub">${c[1]} followers</div></div><button class="pl ${FOL.has(c[0]) ? '' : 'a'}" style="height:36px;padding:0 18px" onclick="FOL.has('${c[0]}')?FOL.delete('${c[0]}'):FOL.add('${c[0]}');chl()">${FOL.has(c[0]) ? 'Following' : 'Follow'}</button></div>`).join('') || none }
+    function regSh() { let o = $('#rgs'); if (o) o.remove(); o = document.createElement('div'); o.id = 'rgs'; o.style.cssText = 'position:absolute;inset:0;z-index:30;background:#000a;display:flex;align-items:flex-end'; o.onclick = e => e.target == o && o.remove(); o.innerHTML = `<div style="background:var(--sh);border-radius:28px 28px 0 0;width:100%;max-height:70%;display:flex;flex-direction:column"><div class="hdl"></div><div style="padding:0 16px 8px"><div class="in" style="height:48px;background:var(--bg)">${ic('search')}<input placeholder="Search for region" oninput="rgl(this.value)"></div></div><div class="pg" id="rgl"></div></div>`; $('#chn').append(o); rgl('') }
+    function rgl(q) { $('#rgl').innerHTML = REG.filter(r => r.toLowerCase().includes(q.toLowerCase())).map(r => `<button class="row" style="height:56px" onclick="rg='${r}';$('#rgs').remove();toast('Region: ${r}')"><span class="ck ${r == rg ? 'on' : ''}"></span><div class="mid nm">${r}</div></button>`).join('') }
+    function openSch() {
+      const d = new Date(), p = n => String(n).padStart(2, '0'), ds = d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()), I = 'background:none;border:0;color:var(--tx);font:17px Inter,sans-serif;color-scheme:dark;outline:0';
+      $('#scc').innerHTML = `<div class="hd"><button class="ib" onclick="back('scc')">${ic('back')}</button><h2>Schedule call</h2></div><div class="pg"><div style="padding:8px 16px 12px;border-bottom:1px solid var(--ol)"><div style="display:flex;align-items:center"><input value="${me.name}'s call" style="flex:1;min-width:0;background:none;border:0;outline:0;color:var(--tx);font:700 24px Inter,sans-serif"><button class="ib" onclick="this.previousElementSibling.value=''">${ic('x', 22)}</button></div><input placeholder="Description (optional)" style="width:100%;background:none;border:0;outline:0;color:var(--tx);font:16px Inter,sans-serif;margin-top:10px"></div>${['Starts', 'Ends'].map((l, i) => `<div class="row set ${i ? 'ed' : ''}" style="gap:12px"><span style="color:var(--s2);display:flex">${ic('cal')}</span><input type="date" value="${ds}" style="flex:1;min-width:0;${I}"><input type="time" value="${i ? '09:00' : '08:30'}" style="${I}"></div>`).join('')}<button class="row set" style="padding-left:52px" onclick="const e=document.querySelector('.ed');e.style.display=e.style.display=='none'?'':'none';this.textContent=e.style.display=='none'?'Add end time':'Remove end time'">Remove end time</button><button class="row set" onclick="const s=this.querySelector('.sub');s.textContent=s.textContent=='Video'?'Voice':'Video'"><span style="color:var(--s2);display:flex">${ic('video')}</span><div class="mid"><div class="nm">Call type</div><div class="sub">Video</div></div></button><button class="row set" onclick="this.querySelector('.tg').classList.toggle('on')"><span style="color:var(--s2);display:flex">${ic('user')}</span><div class="mid nm">Require approval to join</div><div class="tg"></div></button><button class="row set" onclick="const s=this.querySelector('.sub'),L=['15 minutes before','30 minutes before','1 hour before','No reminder'];s.textContent=L[(L.indexOf(s.textContent)+1)%4]"><span style="color:var(--s2);display:flex">${ic('clock')}</span><div class="mid"><div class="nm">Reminder</div><div class="sub">15 minutes before</div></div></button></div><button class="fab" style="bottom:32px" onclick="back('scc');toast('Call scheduled')">${ic('send')}</button>`; go('scc')
+    }
+    function openArc() { $('#arc').innerHTML = `<div class="hd"><button class="ib" onclick="back('arc')">${ic('back')}</button><h2>Archived</h2></div><div class="pg">${ARC.length ? ARC.map((c, i) => `<button class="row" onclick="dlg('Unarchive chat?','${c[0]} will move back to Chats.',[['Unarchive',()=>{C.push(ARC.splice(${i},1)[0]);render();openArc()}],['Cancel']])">${av(c[0], c[4], 48)}<div class="mid"><div class="nm">${c[0]}</div><div class="sub">${c[1]}</div></div><div class="rt">${c[2]}</div></button>`).join('') : '<div class="lab" style="text-align:center;padding-top:60px;font-size:15px">No archived chats</div>'}</div>`; go('arc') }
+    function cvMenu() {
+      document.querySelectorAll('.menu').forEach(m => m.remove()); const m = document.createElement('div'), c = C[open]; m.className = 'menu'; m.style.minWidth = '250px';
+      const A1 = [['New group', 'openGrp()'], '-', ['View contact', 'openCi()'], ['Search', 'cvSearch()'], ['Media, links, and docs', 'openMld()'], [c[7] ? 'Unmute notifications' : 'Mute notifications', 'muteC()'], ['Disappearing messages', 'dispC()'], ['Chat theme', 'themeC()'], '-', ['More', null]], A2 = [['Report', 'repC()'], ['Block', 'blkC()'], ['Clear chat', 'clr()'], ['Export chat', 'expC()'], ['Add shortcut', 'shC()'], ['Add to list', 'listC()']];
+      const paint = A => { m.innerHTML = A.map(a => a == '-' ? '<div style="height:1px;background:var(--ol);margin:6px 8px"></div>' : a[1] ? `<button onclick="this.closest('.menu').remove();${a[1]}">${a[0]}</button>` : `<button style="display:flex;justify-content:space-between;align-items:center" onclick="event.stopPropagation();this.closest('.menu')._p()">${a[0]}${ic('right', 18)}</button>`).join('') };
+      paint(A1); m._p = () => paint(A2); $('#cv').append(m); setTimeout(() => addEventListener('click', () => m.remove(), { once: true }), 0)
+    }
+    function cvSearch() { let b = $('#csb'); if (b) return $('#csq').focus(); b = document.createElement('div'); b.id = 'csb'; b.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--ol);flex:none'; b.innerHTML = `<div class="in" style="height:44px;flex:1">${ic('search')}<input id="csq" placeholder="Search in chat" oninput="csr()"></div><span id="csn" class="sub" style="flex:none;min-width:56px"></span><button class="ib" onclick="csx()">${ic('x')}</button>`; $('#cv .hd').after(b); $('#csq').focus() }
+    function csr() { const q = $('#csq').value.trim().toLowerCase(); let n = 0, first = null; document.querySelectorAll('#cv .b[data-i]').forEach(e => { const m = M[+e.dataset.i], hit = q && (m[1] || '').toLowerCase().includes(q); e.style.opacity = !q || hit ? '' : '.3'; e.style.outline = hit ? '2px solid var(--acl)' : ''; if (hit) { n++; first = first || e } }); $('#csn').textContent = q ? n + ' found' : ''; first && first.scrollIntoView({ block: 'center' }) }
+    function csx() { const b = $('#csb'); b && b.remove(); document.querySelectorAll('#cv .b').forEach(e => { e.style.opacity = ''; e.style.outline = '' }) }
+    function muteC() { const c = C[open]; if (c[7]) { c[7] = null; return toast('Notifications on') } const mu = l => () => { c[7] = l; toast(l == 'Always' ? 'Muted' : 'Muted for ' + l); ciR() }; dlg('Mute notifications', 'Choose how long to mute this chat.', [['8 hours', mu('8 hours')], ['1 week', mu('1 week')], ['Always', mu('Always')], ['Cancel']]) }
+    function dispC() { const c = C[open], d = l => () => { c[8] = l == 'Off' ? null : l; toast('Disappearing messages: ' + l); ciR() }; dlg('Disappearing messages', 'New messages will disappear after the time you choose.', [['24 hours', d('24 hours')], ['7 days', d('7 days')], ['90 days', d('90 days')], ['Off', d('Off')], ['Cancel']]) }
+    const CTH = [['Default', ''], ['Blue', '#3b82f6'], ['Green', '#22c55e'], ['Purple', '#a855f7'], ['Orange', '#f59e0b'], ['Rose', '#f43f5e']];
+    function setTh(i) { const v = CTH[i][1] ? 'color-mix(in srgb,' + CTH[i][1] + ' 16%,var(--bg))' : ''; C[open][9] = v; $('#cv').style.background = v; $('#cth').remove(); toast(CTH[i][0] + ' theme') }
+    function themeC() { let o = $('#cth'); if (o) o.remove(); o = document.createElement('div'); o.id = 'cth'; o.style.cssText = 'position:absolute;inset:0;z-index:30;background:#0008;display:flex;align-items:flex-end'; o.onclick = e => e.target == o && o.remove(); o.innerHTML = `<div style="background:var(--sh);border-radius:28px 28px 0 0;width:100%;padding:0 16px 24px"><div class="hdl"></div><div style="font-size:18px;font-weight:700;margin-bottom:16px">Chat theme</div><div style="display:flex;gap:14px;flex-wrap:wrap">${CTH.map((t, i) => `<button onclick="setTh(${i})" style="text-align:center;font-size:12px;color:var(--s2)"><span style="display:block;width:48px;height:48px;border-radius:50%;margin-bottom:6px;background:${t[1] || 'var(--sf)'};border:1px solid var(--ol)"></span>${t[0]}</button>`).join('')}</div></div>`; $('#cv').append(o) }
+    function openMld(t) { t = t || 'Media'; const imgs = M.filter(m => (m[3] || {}).t == 'img').map(m => m[3].g % 5), S = imgs.concat([0, 1, 2, 3, 4, 2, 0, 3, 1]); $('#mld').innerHTML = `<div class="hd"><button class="ib" onclick="back('mld')">${ic('back')}</button><h2>${C[open][0]}</h2></div><div class="pills">${['Media', 'Links', 'Docs'].map(x => `<button class="pl ${x == t ? 'a' : ''}" onclick="openMld('${x}')">${x}</button>`).join('')}</div><div class="pg">${t == 'Media' ? `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:2px">${S.map(g => `<div style="aspect-ratio:1;background:${G[g]}"></div>`).join('')}</div>` : MD[t].map(x => `<div class="row" style="height:68px"><span class="ibx">${ic(x[2])}</span><div class="mid"><div class="nm">${x[0]}</div><div class="sub">${x[1]}</div></div></div>`).join('')}</div>`; go('mld') }
+    function repC() { dlg('Report this chat?', 'The latest messages will be sent for review.', [['Report', () => toast('Chat reported')], ['Report and block', () => { toast('Reported and blocked'); back('ci'); back('cv') }], ['Cancel']]) }
+    function blkC() { dlg('Block ' + C[open][0] + '?', 'They will not be able to message or call you.', [['Block', () => { toast(C[open][0] + ' blocked'); back('ci'); back('cv') }], ['Cancel']]) }
+    function expC() { const t = M.map(m => (m[0] ? 'Me' : C[open][0]) + ' [' + m[2] + ']: ' + (m[1] || '(attachment)')).join('\n'); try { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([t], { type: 'text/plain' })); a.download = C[open][0] + ' chat.txt'; a.click() } catch (e) { } toast('Chat exported') }
+    function shC() { dlg('Add shortcut?', 'Add ' + C[open][0] + ' to your home screen.', [['Add', () => toast('Shortcut added')], ['Cancel']]) }
+    function listC() { dlg('Add to list', 'Choose a list for ' + C[open][0] + '.', [['Favorites', () => { FAVS.add(C[open][0]); toast('Added to Favorites') }], ['Work', () => toast('Added to Work')], ['Family', () => toast('Added to Family')], ['Cancel']]) }
+    const numFor = n => { let x = 0; for (const ch of n) x = (x * 31 + ch.charCodeAt(0)) >>> 0; return 'MX-234-' + String(x % 1e8).padStart(8, '0') };
+    const ciR = () => { $('#ci').classList.contains('on') && openCi() };
+    function noteC() { let o = $('#cnt'); if (o) o.remove(); const c = C[OP()]; o = document.createElement('div'); o.id = 'cnt'; o.style.cssText = 'position:absolute;inset:0;z-index:30;background:#0008;display:flex;align-items:flex-end'; o.onclick = e => e.target == o && o.remove(); o.innerHTML = `<div style="background:var(--sh);border-radius:28px 28px 0 0;width:100%;padding:0 16px 24px"><div class="hdl"></div><div style="font-size:18px;font-weight:700;margin-bottom:12px">Notes about ${c[0]}</div><textarea id="cnv" placeholder="Add a note" style="width:100%;height:110px;background:var(--bg);border:1px solid var(--ol);border-radius:16px;padding:12px;color:var(--tx);font:16px Inter,sans-serif;outline:0;resize:none">${c[10] || ''}</textarea><button onclick="C[OP()][10]=$('#cnv').value.trim();$('#cnt').remove();openCi();toast('Note saved')" style="width:100%;height:48px;border-radius:24px;background:var(--ac);color:var(--acx);font-size:16px;font-weight:600;margin-top:12px">Save</button></div>`; $('#ci').append(o) }
+    function openCi() {
+      const i = OP(), c = C[i], g = c[6], R = (k, t, sub, f, x) => `<button class="row set" style="gap:20px;height:${sub ? 76 : 64}px" onclick="${f}"><span style="width:28px;display:flex;justify-content:center;color:var(--s2);flex:none">${ic(k, 24)}</span><div class="mid"><div class="nm" style="font-weight:400">${t}</div>${sub ? `<div class="sub">${sub}</div>` : ''}</div>${x || ''}</button>`,
+      P = (k, t, f) => `<button onclick="${f}"><i style="width:64px;height:32px;border-radius:16px">${ic(k, 20)}</i>${t}</button>`,
+      G2 = C.map((x, k) => [x, k]).filter(([x, k]) => x[6] && k != i);
+      $('#ci').innerHTML = `<div class="hd" id="cihd" style="border-bottom:1px solid transparent"><button class="ib" onclick="back('ci')">${ic('back')}</button><span id="cih" style="display:flex;align-items:center;gap:12px;flex:1;min-width:0;opacity:0;transition:opacity .2s">${av(c[0], c[4], 40)}<span class="nm" style="font-size:20px">${c[0]}</span></span></div><div class="pg" onscroll="const s=this.scrollTop>150;document.getElementById('cih').style.opacity=s?1:0;document.getElementById('cihd').style.borderColor=s?'var(--ol)':'transparent'"><div class="big" style="padding-top:0">${av(c[0], c[4], 120)}<div class="nm" style="font-size:24px;font-weight:700">${c[0]}</div><div class="sub" style="font-size:16px;justify-content:center">${g ? g + ' members' : numFor(c[0])}</div>${g ? '' : '<div class="sub" style="justify-content:center;color:var(--acl)">online</div>'}</div><div class="qa" style="justify-content:center;gap:20px">${P('phone', 'Voice', 'startCall(OP(),0)')}${P('video', 'Video', 'startCall(OP(),1)')}${P('chat', 'Chat', "back('ci')")}${P('search', 'Search', "back('ci');cvSearch()")}</div>
+${R('user', 'Add to lists', '', 'listC()')}${R('notes', 'Add notes', c[10] || '', 'noteC()')}${R('bell', 'Notifications', '', "const c=C[OP()];c[7]=c[7]?null:'Always';this.querySelector('.tg').classList.toggle('on')", `<div class="tg ${c[7] ? '' : 'on'}"></div>`)}${R('img', 'Media visibility', c[11] || 'Default', "const c=C[OP()],L=['Default','Show','Hide'];c[11]=L[(L.indexOf(c[11]||'Default')+1)%3];this.querySelector('.sub').textContent=c[11]")}${R('doc', 'Media, links, and docs', '', 'openMld()')}${R('clock', 'Disappearing messages', c[8] || 'Off', 'dispC()')}
+${g ? '' : `<div class="lab">${G2.length ? G2.length + ' group' + (G2.length == 1 ? '' : 's') + ' in common' : 'No groups in common'}</div><button class="row" style="height:68px;gap:16px" onclick="openGrp(${i})"><span style="width:48px;height:48px;border-radius:50%;background:var(--tx);color:var(--bg);display:grid;place-items:center;flex:none">${ic('users', 24)}</span><div class="mid nm" style="font-weight:400">Create group with ${c[0]}</div></button>${G2.map(([x, k]) => `<button class="row" style="height:72px" onclick="back('ci');openC(${k})">${av(x[0], x[4], 48)}<div class="mid"><div class="nm">${x[0]}</div><div class="sub">${x[6]} members</div></div></button>`).join('')}`}
+<div style="height:8px"></div>${R('trash', 'Clear chat', '', 'clr()')}${R('ban', 'Block ' + c[0], '', 'blkC()')}${R('flag', 'Report ' + c[0], '', 'repC()')}<div style="height:24px"></div></div>`; go('ci')
+    }
+    const rxT = x => { const l = [x.r, ...(x.o || [])].filter(Boolean); return [...new Set(l)].join('') + (l.length > 1 ? ' ' + l.length : '') };
+    const EM = ['😀', '😂', '🥹', '😍', '😘', '😎', '🤔', '😢', '😡', '🥳', '👍🏾', '👎🏾', '🙏🏾', '👏🏾', '🔥', '❤️', '💯', '🎉', '😮', '😴', '🤝🏾', '💪🏾', '✨', '🙌🏾'];
+    const _re = react; react = function (i, e) { _re(i, e); const m = M[i], x = m[3]; if (x && x.r && !x.o && m[0] == 1) setTimeout(() => { x.o = ['🙏🏾']; paintM() }, 1300) };
+    function emPick(i) { clo(); let o = $('#emp'); if (o) o.remove(); o = document.createElement('div'); o.id = 'emp'; o.style.cssText = 'position:absolute;inset:0;z-index:30;background:#0008;display:flex;align-items:flex-end'; o.onclick = e => e.target == o && o.remove(); o.innerHTML = `<div style="background:var(--sh);border-radius:28px 28px 0 0;width:100%;padding:0 12px 24px"><div class="hdl"></div><div style="display:grid;grid-template-columns:repeat(6,1fr);gap:4px">${EM.map(e => `<button style="font-size:28px;height:52px" onclick="react(${i},'${e}');$('#emp').remove()">${e}</button>`).join('')}</div></div>`; $('#cv').append(o) }
+    function rxSheet(i) { const x = M[i][3] || {}, o = document.createElement('div'); o.style.cssText = 'position:absolute;inset:0;z-index:30;background:#0008;display:flex;align-items:flex-end'; o.onclick = e => e.target == o && o.remove(); o.innerHTML = `<div style="background:var(--sh);border-radius:28px 28px 0 0;width:100%;padding:0 0 20px"><div class="hdl"></div><div style="font-size:18px;font-weight:700;padding:0 16px 8px">Reactions</div>${x.r ? `<button class="row" style="height:64px" onclick="react(${i},'${x.r}');this.closest('div[style*=fixed],div[style*=absolute]').remove()">${av('Me', null, 40)}<div class="mid"><div class="nm">You</div><div class="sub">Tap to remove</div></div><span style="font-size:24px">${x.r}</span></button>` : ''}${(x.o || []).map(e => `<div class="row" style="height:64px">${av(C[open][0], C[open][4], 40)}<div class="mid"><div class="nm">${C[open][0]}</div></div><span style="font-size:24px">${e}</span></div>`).join('')}</div>`; $('#cv').append(o) }
+    $('#phone').addEventListener('dblclick', e => { const b = e.target.closest('#cv .b[data-i]'); b && react(+b.dataset.i, '❤️') });
+    function toastA(m, l, f) { const t = document.createElement('div'); t.style.cssText = 'position:absolute;left:12px;right:12px;bottom:90px;background:var(--tx);color:var(--bg);padding:8px 8px 8px 18px;border-radius:24px;font-size:14px;z-index:70;display:flex;align-items:center;justify-content:space-between;gap:12px'; t.innerHTML = `<span>${m}</span><button style="font-weight:700;padding:8px 14px;border-radius:16px">${l}</button>`; t.querySelector('button').onclick = () => { t.remove(); f() }; $('#phone').append(t); setTimeout(() => t.remove(), 4500) }
+    function archiveC(c) { const i = C.indexOf(c); if (i < 0) return; C.splice(i, 1); c[12] = 0; c[13] = 0; ARC.unshift(c); render(); toastA('Chat archived', 'Undo', () => { const k = ARC.indexOf(c); if (k > -1) { ARC.splice(k, 1); C.unshift(c); render() } }) }
+    function reArc(c) { if (open != null && C[open] === c) { open = null; $('#cv').classList.remove('on') } const i = C.indexOf(c); if (i < 0) return; C.splice(i, 1); c[12] = 0; ARC.unshift(c); render(); toast('Chat archived') }
+    function unflag(c) { if (!c || !c[12]) return; c[12] = 0; C.splice(C.indexOf(c), 1); C.unshift(c); open = 0; render(); conv(); $('#cv').classList.add('on'); toastA('Moved to Chats', 'Re-archive', () => reArc(c)) }
+    const _sm = sendM, _ac = addCard; sendM = function () { const c = C[open], f = c && c[12]; _sm(); f && unflag(c) }; addCard = function (k) { const c = C[open], f = c && c[12]; _ac(k); f && unflag(c) };
+    function openAr(k) { const c = ARC.splice(k, 1)[0]; c[12] = 1; C.push(c); openC(C.length - 1) }
+    function unarch(k) { const c = ARC.splice(k, 1)[0]; c[12] = 0; C.unshift(c); render(); openArc(); toastA('Moved to Chats', 'Re-archive', () => reArc(c)) }
+    function openArc() { $('#arc').innerHTML = `<div class="hd"><button class="ib" onclick="back('arc')">${ic('back')}</button><h2>Archived</h2></div><div class="pg">${ARC.length ? ARC.map((c, i) => `<div class="row" style="padding-right:12px"><button style="display:flex;align-items:center;gap:16px;flex:1;min-width:0;text-align:left;height:100%" onclick="openAr(${i})">${av(c[0], c[4], 48)}<div class="mid"><div class="nm">${c[0]}</div><div class="sub"><span class="el">${c[1]}</span></div></div></button><button class="pl a" style="height:34px;padding:0 14px;flex:none" onclick="unarch(${i})">Unarchive</button></div>`).join('') : '<div class="lab" style="text-align:center;padding-top:60px;font-size:15px">No archived chats</div>'}</div>`; go('arc') }
+    function rowMenu(i) {
+      const c = C[i]; if (!c) return; const o = document.createElement('div'); o.style.cssText = 'position:absolute;inset:0;z-index:55;background:#000b;display:grid;place-items:center'; o.onclick = e => e.target == o && o.remove(); const A = [[c[13] ? 'Unpin chat' : 'Pin chat', () => { c[13] = c[13] ? 0 : 1; render() }], ['Archive chat', () => archiveC(c)], [c[7] ? 'Unmute notifications' : 'Mute notifications', () => { c[7] = c[7] ? null : 'Always'; toast(c[7] ? 'Muted' : 'Notifications on') }], [c[3] ? 'Mark as read' : 'Mark as unread', () => { c[3] = c[3] ? 0 : 1; render() }], ['Delete chat', () => dlg('Delete chat?', 'This chat will be removed from your list.', [['Delete', () => { C.splice(C.indexOf(c), 1); render() }], ['Cancel']])]];
+      o.innerHTML = `<div style="background:var(--sh);border:1px solid var(--ol);border-radius:20px;padding:6px;width:260px"><div style="padding:12px 16px;font-weight:700">${c[0]}</div>${A.map(a => `<button style="display:block;width:100%;text-align:left;padding:14px 16px;font-size:15px;border-radius:12px">${a[0]}</button>`).join('')}</div>`;[...o.querySelectorAll('button')].forEach((b, k) => b.onclick = () => { o.remove(); A[k][1]() }); $('#phone').append(o)
+    }
+    let rlp = 0, rlf = 0, rx0 = 0, ry0 = 0; const PH = $('#phone');
+    PH.addEventListener('pointerdown', e => { const r = e.target.closest('#trk .row[data-ci]'); if (!r) return; rlf = 0; rx0 = e.clientX; ry0 = e.clientY; clearTimeout(rlp); rlp = setTimeout(() => { rlf = 1; rowMenu(+r.dataset.ci) }, 450) });
+    PH.addEventListener('pointermove', e => { if (Math.hypot(e.clientX - rx0, e.clientY - ry0) > 10) clearTimeout(rlp) });
+    ['pointerup', 'pointercancel'].forEach(t => PH.addEventListener(t, () => clearTimeout(rlp)));
+    PH.addEventListener('click', e => { if (rlf) { e.stopPropagation(); e.preventDefault(); rlf = 0 } }, true);
+    PH.addEventListener('contextmenu', e => { const r = e.target.closest('#trk .row[data-ci]'); if (r) { e.preventDefault(); rowMenu(+r.dataset.ci) } });
+  </script>
+</body>
+
+</html>

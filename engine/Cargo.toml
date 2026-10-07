@@ -1,0 +1,53 @@
+[package]
+name = "mestxa"
+version = "0.1.0"
+edition = "2021"
+authors = ["Mestxa Core Team <core@mestxa.com>"]
+description = "Native zero-knowledge post-quantum cryptographic engine for Mestxa mobile clients"
+
+[lib]
+name = "mestxa"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[dependencies]
+# Classical & Post-Quantum Cryptography (Constant-Time Audited)
+x25519-dalek = { version = "2.0", features = ["static_secrets"] }
+ed25519-dalek = { version = "2.1", features = ["rand_core"] }
+ml-kem = "0.2" # NIST FIPS 203 (ML-KEM-768 / Kyber)
+
+# Symmetric Ciphers & Hash Functions
+chacha20poly1305 = { version = "0.10", features = ["alloc"] }
+aes-gcm = "0.10"
+hkdf = "0.12"
+sha2 = "0.10"
+hmac = "0.12"
+
+# Security & Memory Sanitization
+zeroize = { version = "1.8", features = ["derive", "zeroize_derive"] }
+rand_core = { version = "0.6", features = ["getrandom"] }
+rand = "0.8"
+
+# Encrypted Local Database (SQLCipher)
+rusqlite = { version = "0.31", features = ["bundled-sqlcipher"] }
+
+# Serialization & Utils
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+hex = "0.4"
+thiserror = "1.0"
+
+# JNI Bindings for Android
+jni = "0.21"
+
+# UniFFI for Kotlin & Swift bindings
+uniffi = { version = "0.28", features = ["cli"] }
+
+[build-dependencies]
+uniffi = { version = "0.28", features = ["build"] }
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = true

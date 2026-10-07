@@ -1,0 +1,112 @@
+syntax = "proto3";
+
+package mestxa.wire;
+
+// Top-level wire frame exchanged over WebSocket or QUIC stream
+message WireFrame {
+  oneof payload {
+    MessageEnvelope envelope = 1;
+    DeliveryAck ack = 2;
+    PrekeyUploadRequest prekey_upload = 3;
+    PrekeyFetchRequest prekey_fetch = 4;
+    PrekeyBundle prekey_bundle = 5;
+    CallSignal call_signal = 6;
+    Heartbeat ping = 7;
+    Heartbeat pong = 8;
+  }
+}
+
+// Opaque End-to-End Encrypted Message Envelope
+message MessageEnvelope {
+  string message_id = 1;               // UUID or random 128-bit hex
+  bytes sender_identity_key = 2;       // 32-byte Ed25519/X25519 identity key
+  bytes recipient_identity_key = 3;    // 32-byte recipient key
+  bytes ephemeral_dh_key = 4;          // 32-byte ephemeral X25519 public key
+  bytes kyber_ciphertext = 5;          // ~1088-byte ML-KEM-768 encapsulated key (PQXDH)
+  bytes ciphertext = 6;                // Encrypted message payload (ChaCha20-Poly1305)
+  bytes iv = 7;                        // 12-byte initialization vector / nonce
+  MessageType message_type = 8;        // Classification
+  uint64 timestamp_ms = 9;             // Server-assigned transit timestamp
+  uint32 sequence_number = 10;         // Chain sequence count
+}
+
+enum MessageType {
+  MESSAGE_TYPE_UNSPECIFIED = 0;
+  MESSAGE_TYPE_TEXT = 1;
+  MESSAGE_TYPE_MEDIA_ATTACHMENT = 2;
+  MESSAGE_TYPE_VOICE_NOTE = 3;
+  MESSAGE_TYPE_VIEW_ONCE = 4;
+  MESSAGE_TYPE_RETRACT = 5;             // Delete for everyone
+  MESSAGE_TYPE_EDIT = 6;
+  MESSAGE_TYPE_READ_RECEIPT = 7;
+}
+
+// Delivery / Read Acknowledgement (Triggers immediate server purge)
+message DeliveryAck {
+  string message_id = 1;
+  bytes recipient_id = 2;
+  AckStatus status = 3;
+  uint64 timestamp_ms = 4;
+}
+
+enum AckStatus {
+  ACK_STATUS_UNSPECIFIED = 0;
+  ACK_STATUS_DELIVERED = 1;            // Received on device, triggers instant server purge
+  ACK_STATUS_READ = 2;                 // User opened chat
+}
+
+// Prekey Upload (Uploaded by client during onboarding / replenishment)
+message PrekeyUploadRequest {
+  bytes identity_key = 1;              // Long-term Ed25519 public key
+  bytes signed_prekey = 2;             // Curve25519 public key
+  bytes signed_prekey_signature = 3;   // Ed25519 signature over signed_prekey
+  repeated bytes one_time_prekeys = 4; // Batch of single-use Curve25519 keys
+  bytes kyber_prekey = 5;              // ML-KEM-768 public key (NIST Post-Quantum)
+  bytes kyber_prekey_signature = 6;    // Ed25519 signature over Kyber key
+  string username = 7;                 // Optional handle (e.g. @caleb)
+  string phone_hash = 8;               // Blinded salted hash of phone number
+}
+
+// Request to fetch prekeys to initiate PQXDH session
+message PrekeyFetchRequest {
+  oneof target {
+    bytes recipient_identity_key = 1;
+    string username = 2;
+    string phone_hash = 3;
+  }
+}
+
+// Returned prekey bundle used by initiator to compute PQXDH master key
+message PrekeyBundle {
+  bytes identity_key = 1;
+  bytes signed_prekey = 2;
+  bytes signed_prekey_signature = 3;
+  bytes one_time_prekey = 4;           // Consumed once, then deleted
+  bytes kyber_prekey = 5;              // Post-quantum ML-KEM-768 public key
+  bytes kyber_prekey_signature = 6;
+  string username = 7;
+}
+
+// Low-latency WebRTC Call Signaling (SFrame E2EE)
+message CallSignal {
+  string call_id = 1;
+  bytes caller_id = 2;
+  bytes callee_id = 3;
+  CallSignalType signal_type = 4;
+  string sdp_or_candidate = 5;         // WebRTC SDP offer/answer or ICE candidate
+  bytes sframe_epoch_key_ciphertext = 6; // SFrame media encryption key encrypted via Double Ratchet
+}
+
+enum CallSignalType {
+  CALL_SIGNAL_TYPE_UNSPECIFIED = 0;
+  CALL_SIGNAL_TYPE_OFFER = 1;
+  CALL_SIGNAL_TYPE_ANSWER = 2;
+  CALL_SIGNAL_TYPE_ICE_CANDIDATE = 3;
+  CALL_SIGNAL_TYPE_REJECT = 4;
+  CALL_SIGNAL_TYPE_HANGUP = 5;
+  CALL_SIGNAL_TYPE_RINGING = 6;
+}
+
+message Heartbeat {
+  uint64 timestamp_ms = 1;
+}
