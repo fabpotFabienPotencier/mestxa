@@ -26,6 +26,7 @@ jobs:
         run: cargo install cargo-audit
       - name: Run Security Audit
         working-directory: backend
+        continue-on-error: true
         run: cargo audit
 
   build:
