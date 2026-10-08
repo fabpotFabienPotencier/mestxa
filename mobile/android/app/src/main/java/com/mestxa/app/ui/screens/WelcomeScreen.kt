@@ -63,19 +63,11 @@ fun WelcomeScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "Simple. Fast. Yours.",
+                text = "Message simply.",
                 style = MaterialTheme.typography.bodyLarge,
                 color = TextSecondary,
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Text(
-                text = "• Zero-Knowledge Store & Forward Engine",
-                style = MaterialTheme.typography.labelSmall,
-                color = AccentGreen,
-                fontWeight = FontWeight.SemiBold
+                textAlign = TextAlign.Center,
+                fontSize = 17.sp
             )
         }
 

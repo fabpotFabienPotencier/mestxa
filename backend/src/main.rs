@@ -3,7 +3,7 @@ use axum::{
         ws::WebSocketUpgrade,
         Path, Query, State,
     },
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     response::{IntoResponse, Json},
     routing::{get, post},
     Router,
@@ -15,11 +15,13 @@ use tower_http::trace::TraceLayer;
 use tracing::{error, info};
 
 mod config;
+mod directory;
 mod gateway;
 mod mailbox;
 mod prekeys;
 
 use config::ServerConfig;
+use directory::{Directory, RegisterOutcome, SharedDirectory};
 use gateway::{GatewayHub, SharedGateway};
 use mailbox::EphemeralMailbox;
 use prekeys::{PrekeyRegistry, SharedPrekeys};
@@ -29,6 +31,7 @@ use ed25519_dalek::{Signature, VerifyingKey, Verifier};
 struct AppState {
     gateway: SharedGateway,
     prekeys: SharedPrekeys,
+    directory: SharedDirectory,
 }
 
 #[derive(Deserialize)]
@@ -61,12 +64,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let redis_client = redis::Client::open(config.redis_url.clone())?;
     let redis_conn = redis::aio::ConnectionManager::new(redis_client).await?;
+    let directory = Arc::new(Directory::new(redis_conn.clone()));
     let prekeys = Arc::new(PrekeyRegistry::new(redis_conn));
 
     // 4. Initialize Gateway Hub
     let gateway = Arc::new(GatewayHub::new(Arc::clone(&mailbox), Arc::clone(&prekeys)));
 
-    let state = Arc::new(AppState { gateway, prekeys });
+    let state = Arc::new(AppState { gateway, prekeys, directory });
 
     // 5. Build Axum Router
     let app = Router::new()
@@ -74,6 +78,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/v1/gateway", get(ws_gateway_handler))
         .route("/v1/prekeys/upload", post(upload_prekeys_handler))
         .route("/v1/prekeys/:target", get(fetch_prekeys_handler))
+        // Accounts & Directory
+        .route("/v1/numbers/countries", get(countries_handler))
+        .route("/v1/geo", get(geo_handler))
+        .route("/v1/numbers/offer", post(offer_number_handler))
+        .route("/v1/username/check/:username", get(username_check_handler))
+        .route("/v1/account/register", post(register_handler))
+        .route("/v1/account/:user_hex", get(account_handler))
+        .route("/v1/directory/:handle", get(directory_handler))
         .layer(
             CorsLayer::new()
                 .allow_origin(Any)
@@ -289,6 +301,182 @@ async fn fetch_prekeys_handler(
         Err(e) => {
             error!("Database error fetching prekeys: {}", e);
             (StatusCode::INTERNAL_SERVER_ERROR, "Server Error").into_response()
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Accounts & Directory Handlers
+// ---------------------------------------------------------------------------
+
+fn now_secs() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0)
+}
+
+fn err_json(status: StatusCode, msg: &str) -> axum::response::Response {
+    (status, Json(serde_json::json!({ "error": msg }))).into_response()
+}
+
+async fn countries_handler() -> impl IntoResponse {
+    Json(directory::all_countries())
+}
+
+async fn geo_handler(headers: HeaderMap) -> impl IntoResponse {
+    let iso = ["cf-ipcountry", "x-country-code"]
+        .iter()
+        .filter_map(|h| headers.get(*h).and_then(|v| v.to_str().ok()))
+        .map(|s| s.trim().to_uppercase())
+        .find(|s| s.len() == 2 && s != "XX" && s != "T1");
+    let info = iso.as_deref().and_then(directory::country);
+    Json(serde_json::json!({ "country": info }))
+}
+
+#[derive(Deserialize)]
+struct OfferPayload {
+    country: String,
+}
+
+async fn offer_number_handler(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<OfferPayload>,
+) -> axum::response::Response {
+    let Some(c) = directory::country(&payload.country) else {
+        return err_json(StatusCode::BAD_REQUEST, "Unsupported country");
+    };
+    match state.directory.offer(c).await {
+        Ok(Some(offer)) => Json(offer).into_response(),
+        Ok(None) => err_json(StatusCode::SERVICE_UNAVAILABLE, "Could not allocate number, try again"),
+        Err(e) => {
+            error!("Number offer error: {}", e);
+            err_json(StatusCode::INTERNAL_SERVER_ERROR, "Server error")
+        }
+    }
+}
+
+async fn username_check_handler(
+    Path(username): Path<String>,
+    State(state): State<Arc<AppState>>,
+) -> axum::response::Response {
+    let u = match directory::normalize_username(&username) {
+        Ok(u) => u,
+        Err(reason) => {
+            return Json(serde_json::json!({ "available": false, "reason": reason })).into_response();
+        }
+    };
+    match state.directory.username_available(&u).await {
+        Ok(true) => Json(serde_json::json!({ "available": true, "username": u })).into_response(),
+        Ok(false) => Json(serde_json::json!({ "available": false, "reason": "Username is taken" })).into_response(),
+        Err(e) => {
+            error!("Username check error: {}", e);
+            err_json(StatusCode::INTERNAL_SERVER_ERROR, "Server error")
+        }
+    }
+}
+
+#[derive(Deserialize)]
+struct RegisterPayload {
+    user_hex: String,
+    number: String,
+    offer_token: String,
+    username: String,
+    #[serde(default)]
+    name: String,
+    country: String,
+    ts: u64,
+    sig: String,
+}
+
+async fn register_handler(
+    State(state): State<Arc<AppState>>,
+    Json(p): Json<RegisterPayload>,
+) -> axum::response::Response {
+    let user_hex = p.user_hex.to_lowercase();
+    let Some(number) = directory::normalize_number(&p.number) else {
+        return err_json(StatusCode::BAD_REQUEST, "Invalid MX number");
+    };
+    let username = match directory::normalize_username(&p.username) {
+        Ok(u) => u,
+        Err(reason) => return err_json(StatusCode::BAD_REQUEST, reason),
+    };
+    let Some(c) = directory::country(&p.country) else {
+        return err_json(StatusCode::BAD_REQUEST, "Unsupported country");
+    };
+    if !number.starts_with(&format!("MX-{}-", c.calling_code)) {
+        return err_json(StatusCode::BAD_REQUEST, "Number does not match country");
+    }
+    let name: String = p.name.trim().chars().take(64).collect();
+
+    if (now_secs() as i64 - p.ts as i64).abs() > 300 {
+        return err_json(StatusCode::UNAUTHORIZED, "Registration timestamp expired");
+    }
+
+    let key_bytes: [u8; 32] = match hex::decode(&user_hex) {
+        Ok(b) if b.len() == 32 => b.try_into().unwrap(),
+        _ => return err_json(StatusCode::BAD_REQUEST, "Invalid identity key"),
+    };
+    let Ok(vk) = VerifyingKey::from_bytes(&key_bytes) else {
+        return err_json(StatusCode::BAD_REQUEST, "Invalid identity key");
+    };
+    let sig_bytes: [u8; 64] = match hex::decode(&p.sig) {
+        Ok(b) if b.len() == 64 => b.try_into().unwrap(),
+        _ => return err_json(StatusCode::UNAUTHORIZED, "Invalid signature"),
+    };
+    let msg = format!("mestxa-register:{}:{}:{}:{}", number, username, user_hex, p.ts);
+    if vk.verify(msg.as_bytes(), &Signature::from_bytes(&sig_bytes)).is_err() {
+        return err_json(StatusCode::UNAUTHORIZED, "Signature verification failed");
+    }
+
+    match state
+        .directory
+        .register(&user_hex, &number, &p.offer_token, &username, &name, c.iso, now_secs())
+        .await
+    {
+        Ok(RegisterOutcome::Ok) => {
+            info!("Registered {} as @{}", number, username);
+            Json(serde_json::json!({ "number": number, "username": username, "name": name })).into_response()
+        }
+        Ok(RegisterOutcome::OfferInvalid) => {
+            err_json(StatusCode::GONE, "Number offer expired, request a new number")
+        }
+        Ok(RegisterOutcome::NumberTaken) => err_json(StatusCode::CONFLICT, "Number already taken"),
+        Ok(RegisterOutcome::UsernameTaken) => err_json(StatusCode::CONFLICT, "Username is taken"),
+        Ok(RegisterOutcome::AlreadyRegistered) => {
+            err_json(StatusCode::CONFLICT, "This identity is already registered")
+        }
+        Err(e) => {
+            error!("Registration error: {}", e);
+            err_json(StatusCode::INTERNAL_SERVER_ERROR, "Server error")
+        }
+    }
+}
+
+async fn account_handler(
+    Path(user_hex): Path<String>,
+    State(state): State<Arc<AppState>>,
+) -> axum::response::Response {
+    match state.directory.account(&user_hex.to_lowercase()).await {
+        Ok(Some(entry)) => Json(entry).into_response(),
+        Ok(None) => err_json(StatusCode::NOT_FOUND, "Account not found"),
+        Err(e) => {
+            error!("Account fetch error: {}", e);
+            err_json(StatusCode::INTERNAL_SERVER_ERROR, "Server error")
+        }
+    }
+}
+
+async fn directory_handler(
+    Path(handle): Path<String>,
+    State(state): State<Arc<AppState>>,
+) -> axum::response::Response {
+    match state.directory.lookup(&handle).await {
+        Ok(Some(entry)) => Json(entry).into_response(),
+        Ok(None) => err_json(StatusCode::NOT_FOUND, "No Mestxa user with that username or number"),
+        Err(e) => {
+            error!("Directory lookup error: {}", e);
+            err_json(StatusCode::INTERNAL_SERVER_ERROR, "Server error")
         }
     }
 }

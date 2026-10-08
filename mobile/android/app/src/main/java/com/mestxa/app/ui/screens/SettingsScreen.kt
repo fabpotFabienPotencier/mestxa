@@ -1,5 +1,9 @@
 package com.mestxa.app.ui.screens
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -16,22 +20,43 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mestxa.app.storage.DatabaseManager
+import com.mestxa.app.storage.VaultManager
 import com.mestxa.app.ui.theme.*
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
     onOpenQr: () -> Unit = {},
-    onOpenTheme: () -> Unit = {}
+    onOpenTheme: () -> Unit = {},
+    onSignOut: () -> Unit = {}
 ) {
+    val context = LocalContext.current
+    val db = remember { DatabaseManager.getInstance(context) }
+
+    val displayName = remember { VaultManager.getDisplayName(context) }
+    val userHandle = remember { VaultManager.getUserHandle(context) }
+    val userNumber = remember { VaultManager.getUserNumber(context) }
+    val userAbout = remember { VaultManager.getUserAbout(context) }
+
     var biometricLockEnabled by remember { mutableStateOf(true) }
     var screenSecurityEnabled by remember { mutableStateOf(true) }
     var studioAudioEnabled by remember { mutableStateOf(true) }
     var readReceiptsEnabled by remember { mutableStateOf(true) }
     var disappearingDays by remember { mutableStateOf("7 Days") }
+    var showResetDialog by remember { mutableStateOf(false) }
+
+    fun copyToClipboard(label: String, text: String) {
+        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val clip = ClipData.newPlainText(label, text)
+        clipboard.setPrimaryClip(clip)
+        Toast.makeText(context, "$label copied", Toast.LENGTH_SHORT).show()
+    }
 
     Scaffold(
         containerColor = OledBlack,
@@ -65,9 +90,10 @@ fun SettingsScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            contentPadding = PaddingValues(bottom = 32.dp)
         ) {
-            // Profile Card
+            // Real User Profile Card
             item {
                 Row(
                     modifier = Modifier
@@ -82,12 +108,12 @@ fun SettingsScreen(
                         modifier = Modifier
                             .size(60.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFF2E7D32)),
+                            .background(Color(0xFF2563EB)),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "A",
-                            fontSize = 26.sp,
+                            text = displayName.take(2).uppercase().ifBlank { userHandle.take(2).uppercase() },
+                            fontSize = 22.sp,
                             fontWeight = FontWeight.Bold,
                             color = AccentWhite
                         )
@@ -97,19 +123,23 @@ fun SettingsScreen(
 
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Alex Rivera",
+                            text = displayName,
                             fontSize = 17.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = TextPrimary
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = "@alex_r",
+                            text = "@$userHandle",
                             fontSize = 14.sp,
-                            color = TextSecondary
+                            color = TextSecondary,
+                            modifier = Modifier.clickable { copyToClipboard("Username", "@$userHandle") }
                         )
                         Spacer(modifier = Modifier.height(4.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.clickable { copyToClipboard("MX Number", userNumber) }
+                        ) {
                             Box(
                                 modifier = Modifier
                                     .size(6.dp)
@@ -118,8 +148,8 @@ fun SettingsScreen(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "Zero-Knowledge Vault Active",
-                                fontSize = 11.sp,
+                                text = userNumber.ifBlank { "MX Number" },
+                                fontSize = 12.sp,
                                 color = AccentGreen,
                                 fontWeight = FontWeight.Medium
                             )
@@ -170,7 +200,7 @@ fun SettingsScreen(
                 }
             }
 
-            // Category: Appearance & Theme (Matching Prototype)
+            // Category: Appearance & Theme
             item {
                 SettingsSectionHeader(title = "Appearance & Theme")
                 Column(
@@ -275,7 +305,7 @@ fun SettingsScreen(
 
             // Category: Zero-Cloud Vault & Identity
             item {
-                SettingsSectionHeader(title = "Zero-Cloud Keys & Devices")
+                SettingsSectionHeader(title = "Relay & Cryptographic Keys")
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -284,31 +314,35 @@ fun SettingsScreen(
                         .border(1.dp, BorderHairline, RoundedCornerShape(16.dp))
                 ) {
                     SettingsClickableItem(
-                        icon = Icons.Default.VpnKey,
-                        title = "Backup Recovery Seed",
-                        value = "12 Words",
+                        icon = Icons.Default.Dns,
+                        title = "Relay Server",
+                        value = "api.mestxa.com",
                         onClick = {}
+                    )
+                    Divider(color = BorderHairline, thickness = 0.5.dp)
+                    SettingsClickableItem(
+                        icon = Icons.Default.VpnKey,
+                        title = "Identity Key Hex",
+                        value = "Ed25519 Verified",
+                        onClick = {
+                            val ik = VaultManager.getIdentityPublicKey(context)
+                            val hex = com.mestxa.app.engine.MestxaBridge.bytesToHex(ik)
+                            copyToClipboard("Identity Key", hex)
+                        }
                     )
                     Divider(color = BorderHairline, thickness = 0.5.dp)
                     SettingsClickableItem(
                         icon = Icons.Default.Devices,
                         title = "Linked Devices",
-                        value = "0 Companion Devices",
-                        onClick = {}
-                    )
-                    Divider(color = BorderHairline, thickness = 0.5.dp)
-                    SettingsClickableItem(
-                        icon = Icons.Default.Refresh,
-                        title = "Rotate One-Time Prekeys",
-                        value = "100 Available",
+                        value = "Companion QR Ready",
                         onClick = {}
                     )
                 }
             }
 
-            // Category: Storage
+            // Category: Account & Reset
             item {
-                SettingsSectionHeader(title = "Storage & Database")
+                SettingsSectionHeader(title = "Account Management")
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -317,17 +351,10 @@ fun SettingsScreen(
                         .border(1.dp, BorderHairline, RoundedCornerShape(16.dp))
                 ) {
                     SettingsClickableItem(
-                        icon = Icons.Default.Storage,
-                        title = "Encrypted SQLCipher Database",
-                        value = "1.8 MB (Local Only)",
-                        onClick = {}
-                    )
-                    Divider(color = BorderHairline, thickness = 0.5.dp)
-                    SettingsClickableItem(
-                        icon = Icons.Default.DeleteOutline,
-                        title = "Clear Cached Media",
-                        value = "0 KB",
-                        onClick = {}
+                        icon = Icons.Default.Logout,
+                        title = "Reset Account & Clear Data",
+                        value = "Purge local keys",
+                        onClick = { showResetDialog = true }
                     )
                 }
             }
@@ -355,6 +382,51 @@ fun SettingsScreen(
                 }
             }
         }
+    }
+
+    if (showResetDialog) {
+        AlertDialog(
+            onDismissRequest = { showResetDialog = false },
+            title = {
+                Text(
+                    text = "Reset Account?",
+                    fontWeight = FontWeight.Bold,
+                    color = TextPrimary
+                )
+            },
+            text = {
+                Text(
+                    text = "This will erase your local cryptographic identity keys, clear message history, and unbind your MX number from this device.",
+                    color = TextSecondary,
+                    fontSize = 14.sp
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showResetDialog = false
+                        VaultManager.clearAccount(context)
+                        // Clear database
+                        try {
+                            db.writableDatabase.execSQL("DELETE FROM messages")
+                            db.writableDatabase.execSQL("DELETE FROM conversations")
+                            db.writableDatabase.execSQL("DELETE FROM contacts")
+                            db.writableDatabase.execSQL("DELETE FROM calls")
+                        } catch (_: Exception) {}
+                        onSignOut()
+                    }
+                ) {
+                    Text("Reset", color = AccentRed, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showResetDialog = false }) {
+                    Text("Cancel", color = TextPrimary)
+                }
+            },
+            containerColor = SurfaceDark,
+            shape = RoundedCornerShape(16.dp)
+        )
     }
 }
 

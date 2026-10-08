@@ -13,9 +13,9 @@ import com.mestxa.app.ui.screens.*
 
 sealed class Screen(val route: String) {
     object Welcome : Screen("welcome")
-    object ChooseId : Screen("choose_id")
+    object OnboardingNumber : Screen("onboarding_number")
     object PickUsername : Screen("pick_username")
-    object VerifyPhone : Screen("verify_phone")
+    object ProfileSetup : Screen("profile_setup")
     object LinkDevice : Screen("link_device")
     object Pin : Screen("pin")
     object Chats : Screen("chats")
@@ -42,6 +42,16 @@ fun MestxaNavGraph(
     navController: NavHostController = rememberNavController(),
     startDestination: String = Screen.Welcome.route
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
+
+    // Temporary onboarding state
+    var obNumber by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
+    var obOfferToken by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
+    var obCountryIso by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("US") }
+    var obUsername by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
+    var obDisplayName by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
+
     NavHost(
         navController = navController,
         startDestination = startDestination,
@@ -50,11 +60,11 @@ fun MestxaNavGraph(
         popEnterTransition = { EnterTransition.None },
         popExitTransition = { ExitTransition.None }
     ) {
-        // 1. Welcome Screen
+        // Step 0: Welcome Screen
         composable(Screen.Welcome.route) {
             WelcomeScreen(
                 onGetStarted = {
-                    navController.navigate(Screen.ChooseId.route)
+                    navController.navigate(Screen.OnboardingNumber.route)
                 },
                 onLinkDevice = {
                     navController.navigate(Screen.LinkDevice.route)
@@ -62,46 +72,49 @@ fun MestxaNavGraph(
             )
         }
 
-        // 2. Choose Identity Mode
-        composable(Screen.ChooseId.route) {
-            ChooseIdScreen(
+        // Step 1: Your number (Country-aware MX number offer)
+        composable(Screen.OnboardingNumber.route) {
+            OnboardingNumberScreen(
                 onBack = {
                     navController.popBackStack()
                 },
-                onSelectUsername = {
+                onContinue = { number, offerToken, countryIso ->
+                    obNumber = number
+                    obOfferToken = offerToken
+                    obCountryIso = countryIso
                     navController.navigate(Screen.PickUsername.route)
-                },
-                onSelectPhone = {
-                    navController.navigate(Screen.VerifyPhone.route)
                 }
             )
         }
 
-        // 3. Pick Anonymous @Username
+        // Step 2: Pick a username
         composable(Screen.PickUsername.route) {
             PickUsernameScreen(
                 onBack = {
                     navController.popBackStack()
                 },
-                onContinue = { _ ->
-                    navController.navigate(Screen.Pin.route)
+                onContinue = { username ->
+                    obUsername = username
+                    navController.navigate(Screen.ProfileSetup.route)
                 }
             )
         }
 
-        // 4. Verify Phone via Silent Cryptographic SMS Challenge
-        composable(Screen.VerifyPhone.route) {
-            VerifyPhoneScreen(
+        // Step 3: Your profile (Name & avatar)
+        composable(Screen.ProfileSetup.route) {
+            ProfileSetupScreen(
+                username = obUsername,
                 onBack = {
                     navController.popBackStack()
                 },
-                onContinue = { _ ->
+                onContinue = { displayName ->
+                    obDisplayName = displayName
                     navController.navigate(Screen.Pin.route)
                 }
             )
         }
 
-        // 5. Link Companion Device QR
+        // Link Companion Device QR
         composable(Screen.LinkDevice.route) {
             LinkDeviceScreen(
                 onBack = {
@@ -115,15 +128,62 @@ fun MestxaNavGraph(
             )
         }
 
-        // 6. Set Vault Master PIN
+        // Step 4: Set a PIN & finalize registration
         composable(Screen.Pin.route) {
             PinScreen(
                 onBack = {
                     navController.popBackStack()
                 },
-                onPinComplete = { _ ->
-                    navController.navigate(Screen.Chats.route) {
-                        popUpTo(Screen.Welcome.route) { inclusive = true }
+                onPinComplete = { pin ->
+                    coroutineScope.launch {
+                        // 1. Get or create post-quantum identity bundle
+                        val bundle = com.mestxa.app.storage.VaultManager.getOrCreateIdentityBundle(context)
+                        val privateKey = bundle.identityPrivateKey ?: ByteArray(32)
+                        val userHex = com.mestxa.app.engine.MestxaBridge.bytesToHex(bundle.identityKey)
+
+                        // 2. Save PIN if provided
+                        if (pin.isNotBlank()) {
+                            com.mestxa.app.storage.VaultManager.saveVaultPin(context, pin)
+                        }
+
+                        // 3. Register account on relay
+                        val regRes = com.mestxa.app.network.MestxaApiClient.getInstance().registerAccount(
+                            userHex = userHex,
+                            number = obNumber,
+                            offerToken = obOfferToken,
+                            username = obUsername,
+                            name = obDisplayName,
+                            countryIso = obCountryIso,
+                            privateKey = privateKey
+                        )
+
+                        // 4. Upload post-quantum prekeys to relay
+                        com.mestxa.app.network.MestxaApiClient.getInstance().uploadPrekeys(
+                            userHex = userHex,
+                            bundle = bundle,
+                            username = obUsername
+                        )
+
+                        // 5. Persist account locally
+                        val finalNumber = regRes.getOrNull()?.number ?: obNumber
+                        val finalUsername = regRes.getOrNull()?.username ?: obUsername
+                        val finalName = regRes.getOrNull()?.name ?: obDisplayName
+
+                        com.mestxa.app.storage.VaultManager.saveAccount(
+                            context = context,
+                            number = finalNumber,
+                            username = finalUsername,
+                            displayName = finalName,
+                            countryIso = obCountryIso
+                        )
+
+                        // 6. Connect WebSocket gateway with registered identity
+                        com.mestxa.app.network.MestxaNetworkService.getInstance().connect()
+
+                        // 7. Navigate directly to Chats screen
+                        navController.navigate(Screen.Chats.route) {
+                            popUpTo(Screen.Welcome.route) { inclusive = true }
+                        }
                     }
                 }
             )
@@ -205,6 +265,11 @@ fun MestxaNavGraph(
                 },
                 onOpenTheme = {
                     navController.navigate(Screen.AppTheme.route)
+                },
+                onSignOut = {
+                    navController.navigate(Screen.Welcome.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
                 }
             )
         }

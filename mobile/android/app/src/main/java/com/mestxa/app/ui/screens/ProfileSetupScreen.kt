@@ -6,8 +6,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -17,40 +15,28 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.mestxa.app.network.MestxaApiClient
 import com.mestxa.app.ui.theme.*
-import kotlinx.coroutines.delay
 
 @Composable
-fun PickUsernameScreen(
+fun ProfileSetupScreen(
+    username: String,
     onBack: () -> Unit,
-    onContinue: (String) -> Unit
+    onContinue: (displayName: String) -> Unit
 ) {
-    var rawInput by remember { mutableStateOf("") }
-    var isChecking by remember { mutableStateOf(false) }
-    var isAvailable by remember { mutableStateOf<Boolean?>(null) }
-    var statusMessage by remember { mutableStateOf<String?>(null) }
+    var displayName by remember { mutableStateOf("") }
 
-    val apiClient = remember { MestxaApiClient.getInstance() }
-
-    LaunchedEffect(rawInput) {
-        val clean = rawInput.trim().trimStart('@').lowercase()
-        if (clean.length < 3) {
-            isAvailable = null
-            statusMessage = if (clean.isNotEmpty()) "At least 3 characters" else null
-            return@LaunchedEffect
+    val initials = if (displayName.isNotBlank()) {
+        val parts = displayName.trim().split(" ")
+        if (parts.size > 1) {
+            "${parts[0].take(1)}${parts[1].take(1)}".uppercase()
+        } else {
+            displayName.take(2).uppercase()
         }
-
-        delay(350) // debounce
-        isChecking = true
-        val res = apiClient.checkUsername(clean)
-        isChecking = false
-        isAvailable = res.available
-        statusMessage = if (res.available) "Username available" else (res.reason ?: "Username is taken")
+    } else {
+        username.take(2).uppercase().ifBlank { "ME" }
     }
 
-    val cleanUsername = rawInput.trim().trimStart('@').lowercase()
-    val canProceed = isAvailable == true && cleanUsername.length >= 3
+    val canProceed = displayName.trim().isNotBlank()
 
     Scaffold(
         containerColor = OledBlack,
@@ -70,7 +56,7 @@ fun PickUsernameScreen(
                     )
                 }
 
-                // 4-step progress dots (Step 2 active)
+                // 4-step progress dots (Step 3 active)
                 Row(
                     modifier = Modifier
                         .weight(1f)
@@ -87,16 +73,16 @@ fun PickUsernameScreen(
                     Spacer(modifier = Modifier.width(6.dp))
                     Box(
                         modifier = Modifier
-                            .size(width = 22.dp, height = 8.dp)
-                            .clip(RoundedCornerShape(4.dp))
+                            .size(width = 8.dp, height = 8.dp)
+                            .clip(CircleShape)
                             .background(TextPrimary)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Box(
                         modifier = Modifier
-                            .size(width = 8.dp, height = 8.dp)
-                            .clip(CircleShape)
-                            .background(BorderHairline)
+                            .size(width = 22.dp, height = 8.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(TextPrimary)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Box(
@@ -118,7 +104,7 @@ fun PickUsernameScreen(
                 Button(
                     onClick = {
                         if (canProceed) {
-                            onContinue(cleanUsername)
+                            onContinue(displayName.trim())
                         }
                     },
                     enabled = canProceed,
@@ -151,54 +137,47 @@ fun PickUsernameScreen(
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = "Pick a username",
+                text = "Your profile",
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
                 color = TextPrimary
             )
 
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // 96dp Avatar with initials matching prototype line 1661
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(96.dp)
+                        .clip(CircleShape)
+                        .background(SurfaceDark),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = initials,
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
 
             TextField(
-                value = rawInput,
-                onValueChange = { rawInput = it },
+                value = displayName,
+                onValueChange = { displayName = it },
                 placeholder = {
                     Text(
-                        text = "username",
+                        text = "Your name",
                         fontSize = 22.sp,
                         color = TextSecondary
                     )
-                },
-                prefix = {
-                    Text(
-                        text = "@",
-                        fontSize = 22.sp,
-                        color = TextPrimary,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                },
-                trailingIcon = {
-                    if (isChecking) {
-                        CircularProgressIndicator(
-                            color = AccentWhite,
-                            strokeWidth = 2.dp,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    } else if (isAvailable == true) {
-                        Icon(
-                            imageVector = Icons.Default.Check,
-                            contentDescription = "Available",
-                            tint = Color(0xFF4CAF50),
-                            modifier = Modifier.size(22.dp)
-                        )
-                    } else if (isAvailable == false) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Unavailable",
-                            tint = Color(0xFFE57373),
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
                 },
                 singleLine = true,
                 colors = TextFieldDefaults.colors(
@@ -216,24 +195,10 @@ fun PickUsernameScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
-
-            if (statusMessage != null) {
-                Text(
-                    text = statusMessage ?: "",
-                    fontSize = 14.sp,
-                    color = when (isAvailable) {
-                        true -> Color(0xFF81C784)
-                        false -> Color(0xFFE57373)
-                        else -> TextSecondary
-                    }
-                )
-            }
-
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                text = "People can search and message you securely with this handle. It is linked to your post-quantum cryptographic identity.",
+                text = "Enter the name friends and contacts will see when messaging you.",
                 fontSize = 14.sp,
                 lineHeight = 20.sp,
                 color = TextSecondary

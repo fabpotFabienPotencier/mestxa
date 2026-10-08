@@ -38,13 +38,20 @@ class MainActivity : ComponentActivity() {
             )
         )
 
+        val isRegistered = com.mestxa.app.storage.VaultManager.isRegistered(this)
+        val startDestination = if (isRegistered) {
+            com.mestxa.app.ui.navigation.Screen.Chats.route
+        } else {
+            com.mestxa.app.ui.navigation.Screen.Welcome.route
+        }
+
         setContent {
             MestxaTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = OledBlack
                 ) {
-                    MestxaNavGraph()
+                    MestxaNavGraph(startDestination = startDestination)
                 }
             }
         }

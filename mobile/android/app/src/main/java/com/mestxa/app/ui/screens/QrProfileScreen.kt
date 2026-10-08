@@ -1,7 +1,7 @@
 package com.mestxa.app.ui.screens
 
+import android.content.Intent
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -12,20 +12,29 @@ import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mestxa.app.storage.VaultManager
 import com.mestxa.app.ui.theme.*
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QrProfileScreen(
     onBack: () -> Unit
 ) {
+    val context = LocalContext.current
+    val displayName = remember { VaultManager.getDisplayName(context) }
+    val userHandle = remember { VaultManager.getUserHandle(context) }
+    val userNumber = remember { VaultManager.getUserNumber(context) }
+
     Scaffold(
         containerColor = OledBlack,
         topBar = {
@@ -82,12 +91,12 @@ fun QrProfileScreen(
                             modifier = Modifier
                                 .size(72.dp)
                                 .clip(CircleShape)
-                                .background(Color(0xFF2E7D32)),
+                                .background(Color(0xFF2563EB)),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "A",
-                                fontSize = 32.sp,
+                                text = displayName.take(2).uppercase().ifBlank { userHandle.take(2).uppercase() },
+                                fontSize = 28.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = AccentWhite
                             )
@@ -96,14 +105,14 @@ fun QrProfileScreen(
                         Spacer(modifier = Modifier.height(14.dp))
 
                         Text(
-                            text = "Alex Rivera",
+                            text = displayName,
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
                             color = OledBlack
                         )
 
                         Text(
-                            text = "@alex_r",
+                            text = "@$userHandle • $userNumber",
                             fontSize = 14.sp,
                             color = Color(0xFF555555)
                         )
@@ -130,7 +139,7 @@ fun QrProfileScreen(
                         Spacer(modifier = Modifier.height(16.dp))
 
                         Text(
-                            text = "Your QR code is private. If you share it with others, they can scan it with their camera to add you as a contact.",
+                            text = "Your QR code is private. Sharing it allows other Mestxa users to securely establish a post-quantum encrypted channel with you.",
                             fontSize = 11.sp,
                             color = Color(0xFF666666),
                             textAlign = TextAlign.Center,
@@ -146,7 +155,14 @@ fun QrProfileScreen(
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Button(
-                    onClick = {},
+                    onClick = {
+                        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_SUBJECT, "Mestxa Contact")
+                            putExtra(Intent.EXTRA_TEXT, "Connect with me on Mestxa: @$userHandle ($userNumber)")
+                        }
+                        context.startActivity(Intent.createChooser(shareIntent, "Share Mestxa Contact"))
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(52.dp),
@@ -158,7 +174,7 @@ fun QrProfileScreen(
                 ) {
                     Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = "Share QR Code", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                    Text(text = "Share Contact", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                 }
 
                 OutlinedButton(

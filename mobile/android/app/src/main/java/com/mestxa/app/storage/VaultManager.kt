@@ -18,11 +18,68 @@ object VaultManager {
     private const val KEY_KYBER_PUBLIC = "kyber_pub"
     private const val KEY_KYBER_SIGNATURE = "kyber_sig"
     private const val KEY_PIN_HASH = "pin_hash"
+    private const val KEY_USER_NUMBER = "user_number"
+    private const val KEY_USER_HANDLE = "user_handle"
+    private const val KEY_DISPLAY_NAME = "display_name"
+    private const val KEY_USER_COUNTRY = "user_country"
+    private const val KEY_IS_REGISTERED = "is_registered"
+    private const val KEY_USER_ABOUT = "user_about"
 
     private var cachedBundle: PrekeyBundle? = null
 
     private fun getPrefs(context: Context): SharedPreferences {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    }
+
+    /**
+     * Saves registered user identity profile
+     */
+    fun saveAccount(
+        context: Context,
+        number: String,
+        username: String,
+        displayName: String,
+        countryIso: String,
+        about: String = "Building something new"
+    ) {
+        getPrefs(context).edit().apply {
+            putString(KEY_USER_NUMBER, number)
+            putString(KEY_USER_HANDLE, username.trim().trimStart('@'))
+            putString(KEY_DISPLAY_NAME, displayName)
+            putString(KEY_USER_COUNTRY, countryIso.uppercase())
+            putString(KEY_USER_ABOUT, about)
+            putBoolean(KEY_IS_REGISTERED, true)
+            apply()
+        }
+    }
+
+    fun isRegistered(context: Context): Boolean {
+        return getPrefs(context).getBoolean(KEY_IS_REGISTERED, false)
+    }
+
+    fun getUserNumber(context: Context): String {
+        return getPrefs(context).getString(KEY_USER_NUMBER, "") ?: ""
+    }
+
+    fun getUserHandle(context: Context): String {
+        return getPrefs(context).getString(KEY_USER_HANDLE, "") ?: ""
+    }
+
+    fun getDisplayName(context: Context): String {
+        return getPrefs(context).getString(KEY_DISPLAY_NAME, "User") ?: "User"
+    }
+
+    fun getUserAbout(context: Context): String {
+        return getPrefs(context).getString(KEY_USER_ABOUT, "Building something new") ?: "Building something new"
+    }
+
+    fun getUserCountry(context: Context): String {
+        return getPrefs(context).getString(KEY_USER_COUNTRY, "US") ?: "US"
+    }
+
+    fun clearAccount(context: Context) {
+        getPrefs(context).edit().clear().apply()
+        cachedBundle = null
     }
 
     /**
@@ -78,6 +135,10 @@ object VaultManager {
         val digest = MessageDigest.getInstance("SHA-256")
         val pinHash = digest.digest(pin.toByteArray(Charsets.UTF_8))
         getPrefs(context).edit().putString(KEY_PIN_HASH, MestxaBridge.bytesToHex(pinHash)).apply()
+    }
+
+    fun hasPin(context: Context): Boolean {
+        return getPrefs(context).getString(KEY_PIN_HASH, null) != null
     }
 
     /**

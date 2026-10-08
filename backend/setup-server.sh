@@ -55,11 +55,11 @@ unixsocket /var/run/redis/redis.sock
 unixsocketperm 770
 # Disable TCP binding for zero network overhead
 port 0
-# Ephemeral memory management
+# Persistent directory storage + ephemeral mailbox
 maxmemory 2gb
-maxmemory-policy allkeys-lru
-save ""
-appendonly no
+maxmemory-policy volatile-lru
+appendonly yes
+appendfsync everysec
 EOF
 
 systemctl restart redis-server
