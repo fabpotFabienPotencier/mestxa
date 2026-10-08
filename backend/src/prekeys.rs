@@ -29,7 +29,7 @@ impl PrekeyRegistry {
 
         // 1. Store the persistent public prekeys
         let meta_key = format!("pk:meta:{}", user_hex);
-        conn.hset_multiple(
+        let () = conn.hset_multiple(
             &meta_key,
             &[
                 ("ik", identity_key),
@@ -45,19 +45,19 @@ impl PrekeyRegistry {
         if !one_time_prekeys.is_empty() {
             let ot_key = format!("pk:ot:{}", user_hex);
             for ot in one_time_prekeys {
-                conn.rpush(&ot_key, ot).await?;
+                let () = conn.rpush(&ot_key, ot).await?;
             }
         }
 
         // 3. Optional lookup indices (username -> user_hex, phone_hash -> user_hex)
         if let Some(uname) = username {
             let uname_clean = uname.trim_start_matches('@').to_lowercase();
-            conn.set(format!("idx:uname:{}", uname_clean), user_hex)
+            let () = conn.set(format!("idx:uname:{}", uname_clean), user_hex)
                 .await?;
         }
 
         if let Some(phash) = phone_hash {
-            conn.set(format!("idx:phone:{}", phash), user_hex).await?;
+            let () = conn.set(format!("idx:phone:{}", phash), user_hex).await?;
         }
 
         info!("Prekeys successfully registered for user {}", user_hex);

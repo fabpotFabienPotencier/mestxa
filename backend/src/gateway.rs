@@ -21,7 +21,8 @@ pub struct GatewayHub {
     // Active connections: user_hex -> sender channel
     active_sessions: Arc<RwLock<HashMap<String, mpsc::Sender<Message>>>>,
     mailbox: SharedMailbox,
-    prekeys: SharedPrekeys,
+    #[allow(dead_code)]
+    pub prekeys: SharedPrekeys,
 }
 
 impl GatewayHub {
@@ -34,7 +35,7 @@ impl GatewayHub {
     }
 
     /// Handles a new WebSocket connection from an authenticated client
-    pub async fn handle_socket(self: Arc<Self>, mut socket: WebSocket, user_hex: String) {
+    pub async fn handle_socket(self: Arc<Self>, socket: WebSocket, user_hex: String) {
         info!("Client connected to Gateway: {}", user_hex);
         let (mut ws_sender, mut ws_receiver) = socket.split();
 

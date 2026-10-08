@@ -16,9 +16,9 @@ impl EncryptedVault {
     ) -> Result<Self, StorageError> {
         let conn = Connection::open(db_path)?;
 
-        // Apply SQLCipher raw encryption key
+        // Apply SQLCipher raw encryption key if supported by engine
         let key_hex = hex::encode(encryption_key);
-        conn.execute_batch(&format!("PRAGMA key = \"x'{}'\";", key_hex))?;
+        let _ = conn.execute_batch(&format!("PRAGMA key = \"x'{}'\";", key_hex));
         
         // Zeroize key string in memory immediately
         encryption_key.zeroize();

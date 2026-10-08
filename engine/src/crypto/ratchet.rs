@@ -163,11 +163,11 @@ fn kdf_rk(rk: &[u8; 32], dh_out: &[u8; 32]) -> ([u8; 32], [u8; 32]) {
 
 /// Advance symmetric chain and derive message key
 fn kdf_ck(ck: &[u8; 32]) -> ([u8; 32], [u8; 32]) {
-    let mut mac1 = HmacSha256::new_from_slice(ck).expect("HMAC init");
+    let mut mac1 = <HmacSha256 as Mac>::new_from_slice(ck).expect("HMAC init");
     mac1.update(&[0x01]);
     let message_key: [u8; 32] = mac1.finalize().into_bytes().into();
 
-    let mut mac2 = HmacSha256::new_from_slice(ck).expect("HMAC init");
+    let mut mac2 = <HmacSha256 as Mac>::new_from_slice(ck).expect("HMAC init");
     mac2.update(&[0x02]);
     let next_ck: [u8; 32] = mac2.finalize().into_bytes().into();
 

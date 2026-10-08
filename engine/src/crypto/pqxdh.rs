@@ -1,6 +1,9 @@
 use ed25519_dalek::{Signature, VerifyingKey};
 use hkdf::Hkdf;
-use ml_kem::{kem::EncapsulationKey, MlKem768};
+use ml_kem::{
+    kem::{Encapsulate, EncapsulationKey},
+    Encoded, EncodedSizeUser, MlKem768Params,
+};
 use rand_core::OsRng;
 use sha2::Sha256;
 use x25519_dalek::{EphemeralSecret, PublicKey as X25519Public, StaticSecret};
@@ -64,10 +67,15 @@ pub fn initiate_pqxdh(
     }
 
     // 4. Post-Quantum KEM Encapsulation (ML-KEM-768)
-    let encapsulation_key = EncapsulationKey::<MlKem768>::from_bytes(bob_kyber_prekey.into());
+    if bob_kyber_prekey.len() < 1184 {
+        return Err(CryptoError::KeyExchange("Invalid Kyber prekey length".into()));
+    }
+    let mut encoded_key = Encoded::<EncapsulationKey<MlKem768Params>>::default();
+    encoded_key.copy_from_slice(&bob_kyber_prekey[..1184]);
+    let encapsulation_key = EncapsulationKey::<MlKem768Params>::from_bytes(&encoded_key);
     let (kyber_ciphertext, kyber_shared_secret) = encapsulation_key
         .encapsulate(&mut OsRng)
-        .map_err(|e| CryptoError::KeyExchange(format!("Kyber encapsulation failed: {:?}", e)))?;
+        .map_err(|_| CryptoError::KeyExchange("Kyber encapsulation failed".into()))?;
 
     dh_combined.extend_from_slice(kyber_shared_secret.as_slice());
 

@@ -4,7 +4,10 @@ use jni::JNIEnv;
 use serde::{Deserialize, Serialize};
 use ed25519_dalek::{SigningKey, Signer};
 use x25519_dalek::{StaticSecret, PublicKey as X25519Public};
-use ml_kem::{MlKem768, KemCore};
+use ml_kem::{
+    kem::{Encapsulate, EncapsulationKey},
+    Encoded, EncodedSizeUser, KemCore, MlKem768, MlKem768Params,
+};
 use rand_core::OsRng;
 use chacha20poly1305::{ChaCha20Poly1305, Nonce, aead::{Aead, KeyInit}};
 
@@ -44,7 +47,7 @@ pub extern "system" fn Java_com_mestxa_app_engine_MestxaBridge_nativeGeneratePre
     // 3. Generate ML-KEM-768 Post-Quantum Keypair & sign public key with identity key
     let (kyber_decaps, kyber_encaps) = MlKem768::generate(&mut OsRng);
     let _ = kyber_decaps; // stored in local secure enclave
-    let kyber_sig = identity_signing.sign(kyber_encaps.as_bytes());
+    let kyber_sig = identity_signing.sign(kyber_encaps.as_bytes().as_slice());
 
     // 4. Generate 100 One-Time Prekeys
     let mut otks = Vec::with_capacity(100);
@@ -59,7 +62,7 @@ pub extern "system" fn Java_com_mestxa_app_engine_MestxaBridge_nativeGeneratePre
         identity_private_key_hex: Some(hex::encode(identity_signing.to_bytes())),
         signed_prekey_hex: hex::encode(signed_prekey_public.as_bytes()),
         signature_hex: hex::encode(signed_prekey_sig.to_bytes()),
-        kyber_public_key_hex: hex::encode(kyber_encaps.as_bytes()),
+        kyber_public_key_hex: hex::encode(kyber_encaps.as_bytes().as_slice()),
         kyber_sig_hex: hex::encode(kyber_sig.to_bytes()),
         one_time_prekeys_hex: otks,
     };
@@ -73,7 +76,7 @@ pub extern "system" fn Java_com_mestxa_app_engine_MestxaBridge_nativeGeneratePre
 
 #[no_mangle]
 pub extern "system" fn Java_com_mestxa_app_engine_MestxaBridge_nativeSign(
-    mut env: JNIEnv,
+    env: JNIEnv,
     _class: JClass,
     private_key: JByteArray,
     message: JByteArray,
@@ -124,12 +127,11 @@ pub extern "system" fn Java_com_mestxa_app_engine_MestxaBridge_nativeEncrypt(
 
     // 2. Post-Quantum KEM Encapsulation (ML-KEM-768)
     let (kyber_ciphertext, kyber_shared_secret) = if recipient_bytes.len() >= 1184 {
-        if let Ok(encaps_key) = ml_kem::kem::EncapsulationKey::<MlKem768>::from_bytes((&recipient_bytes[..1184]).into()) {
-            if let Ok(res) = encaps_key.encapsulate(&mut OsRng) {
-                (res.0.as_slice().to_vec(), res.1.as_slice().to_vec())
-            } else {
-                (vec![0u8; 1088], vec![0u8; 32])
-            }
+        let mut encoded_key = Encoded::<EncapsulationKey<MlKem768Params>>::default();
+        encoded_key.copy_from_slice(&recipient_bytes[..1184]);
+        let encaps_key = EncapsulationKey::<MlKem768Params>::from_bytes(&encoded_key);
+        if let Ok(res) = encaps_key.encapsulate(&mut OsRng) {
+            (res.0.as_slice().to_vec(), res.1.as_slice().to_vec())
         } else {
             (vec![0u8; 1088], vec![0u8; 32])
         }
@@ -170,7 +172,7 @@ pub extern "system" fn Java_com_mestxa_app_engine_MestxaBridge_nativeEncrypt(
 
 #[no_mangle]
 pub extern "system" fn Java_com_mestxa_app_engine_MestxaBridge_nativeDecrypt(
-    mut env: JNIEnv,
+    env: JNIEnv,
     _class: JClass,
     _sender_key: JByteArray,
     payload_json: JByteArray,

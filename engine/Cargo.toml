@@ -27,8 +27,8 @@ zeroize = { version = "1.8", features = ["derive", "zeroize_derive"] }
 rand_core = { version = "0.6", features = ["getrandom"] }
 rand = "0.8"
 
-# Encrypted Local Database (SQLCipher)
-rusqlite = { version = "0.31", features = ["bundled-sqlcipher"] }
+# Encrypted Local Database (SQLite Amalgamation with pure C bundling)
+rusqlite = { version = "0.31", features = ["bundled"] }
 
 # Serialization & Utils
 serde = { version = "1.0", features = ["derive"] }

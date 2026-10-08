@@ -8,8 +8,6 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use bytes::Bytes;
-use prost::Message;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tower_http::cors::{Any, CorsLayer};
@@ -22,7 +20,7 @@ mod mailbox;
 mod prekeys;
 
 use config::ServerConfig;
-use gateway::{proto::*, GatewayHub, SharedGateway};
+use gateway::{GatewayHub, SharedGateway};
 use mailbox::EphemeralMailbox;
 use prekeys::{PrekeyRegistry, SharedPrekeys};
 

@@ -1,7 +1,7 @@
 use redis::aio::ConnectionManager;
 use redis::AsyncCommands;
 use std::sync::Arc;
-use tracing::{error, info};
+use tracing::info;
 
 pub struct EphemeralMailbox {
     redis: ConnectionManager,
@@ -27,10 +27,10 @@ impl EphemeralMailbox {
         let key = format!("mb:{}", recipient_hex);
 
         // Store envelope in a hash keyed by message_id
-        conn.hset(&key, message_id, envelope_bytes).await?;
+        let () = conn.hset(&key, message_id, envelope_bytes).await?;
         
         // Ensure mailbox key has an expiring TTL (e.g. 14 days)
-        conn.expire(&key, self.ttl_seconds as i64).await?;
+        let () = conn.expire(&key, self.ttl_seconds as i64).await?;
         
         Ok(())
     }

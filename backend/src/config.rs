@@ -2,6 +2,7 @@ use std::env;
 use std::net::SocketAddr;
 use std::path::Path;
 
+#[allow(dead_code)]
 #[derive(Clone, Debug)]
 pub struct ServerConfig {
     pub bind_addr: SocketAddr,

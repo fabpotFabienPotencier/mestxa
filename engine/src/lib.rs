@@ -8,7 +8,6 @@ use rand_core::OsRng;
 use x25519_dalek::{PublicKey as X25519Public, StaticSecret};
 use zeroize::Zeroize;
 
-use crypto::ratchet::DoubleRatchetSession;
 use storage::db::EncryptedVault;
 
 pub struct MestxaEngine {
