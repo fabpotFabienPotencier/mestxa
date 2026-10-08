@@ -3,7 +3,7 @@ package com.mestxa.app.ui.viewmodels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mestxa.app.engine.MestxaBridge
-import com.mestxa.app.network.EnvelopeType
+import com.mestxa.app.network.MessageType
 import com.mestxa.app.network.MessageEnvelope
 import com.mestxa.app.network.MestxaNetworkService
 import com.mestxa.app.ui.screens.MessageBubble
