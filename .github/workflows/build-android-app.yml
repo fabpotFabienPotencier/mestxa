@@ -71,7 +71,7 @@ jobs:
       - name: Build Android APK (Debug & Release)
         working-directory: mobile/android
         run: |
-          gradle assembleDebug assembleRelease -x lintVitalRelease -x lint --stacktrace
+          gradle assembleDebug assembleRelease -x lintVitalRelease -x lint --no-daemon --stacktrace
 
       - name: Upload Debug APK Artifact
         uses: actions/upload-artifact@v4
