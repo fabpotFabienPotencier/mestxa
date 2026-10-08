@@ -292,7 +292,7 @@ fun OnboardingNumberScreen(
     if (showCountryPicker) {
         ModalBottomSheet(
             onDismissRequest = { showCountryPicker = false },
-            containerColor = SurfaceSheet,
+            containerColor = SurfaceDark,
             shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
             dragHandle = {
                 Box(

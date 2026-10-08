@@ -2,7 +2,7 @@ package com.mestxa.app.ui.navigation
 
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -10,6 +10,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.mestxa.app.ui.screens.*
+import kotlinx.coroutines.launch
 
 sealed class Screen(val route: String) {
     object Welcome : Screen("welcome")

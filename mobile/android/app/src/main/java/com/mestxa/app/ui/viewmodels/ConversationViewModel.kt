@@ -153,4 +153,9 @@ class ConversationViewModel(
         // Transmit over wire
         networkService.sendEnvelope(envelope)
     }
+
+    fun retractMessage(messageId: String) {
+        db.deleteMessage(messageId, forEveryone = true)
+        _messages.value = _messages.value.filter { it.id != messageId }
+    }
 }

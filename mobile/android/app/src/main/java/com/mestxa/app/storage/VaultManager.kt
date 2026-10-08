@@ -82,6 +82,10 @@ object VaultManager {
         cachedBundle = null
     }
 
+    fun getIdentityPublicKey(context: Context): ByteArray {
+        return getOrCreateIdentityBundle(context).identityKey
+    }
+
     /**
      * Retrieves existing local identity keys or generates a fresh ML-KEM-768 + Ed25519 bundle
      */
