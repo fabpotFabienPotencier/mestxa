@@ -41,9 +41,9 @@ fun StatusViewerScreen(
     }
 
     val captions = listOf(
-        "Big things start small. Shipping the new cryptographic engine.",
-        "Team sync was high signal today.",
-        "Zero cloud leaks. Everything verified."
+        "Big things start small",
+        "Meeting went well today",
+        "Weekend plans loading"
     )
 
     // Segment timer progress animation (5 seconds per segment)

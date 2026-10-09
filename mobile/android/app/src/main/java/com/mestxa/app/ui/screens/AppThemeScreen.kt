@@ -24,47 +24,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mestxa.app.ui.theme.*
 
-/**
- * 22 curated accent colors matching the Mestxa device prototype
- */
-val ACCENT_PALETTE: List<Color?> = listOf(
-    null,                   // Default White / Monochrome
-    Color(0xFF6B6B6B),      // Graphite
-    Color(0xFF0E7490),      // Cyan
-    Color(0xFF7E3AA0),      // Violet
-    Color(0xFFC2255C),      // Pink Rose
-    Color(0xFF1D4ED8),      // Blue
-    Color(0xFF0B5394),      // Cobalt
-    Color(0xFF5B3FD1),      // Electric Indigo
-    Color(0xFF5B8C26),      // Lime
-    Color(0xFF0F8F6F),      // Emerald Green
-    Color(0xFF0B6B63),      // Teal
-    Color(0xFF4B5D44),      // Forest Sage
-    Color(0xFFE0B400),      // Gold
-    Color(0xFF8B6F4E),      // Sand Bronze
-    Color(0xFF6B4226),      // Mocha
-    Color(0xFF9B1C31),      // Crimson
-    Color(0xFFE58A00),      // Amber
-    Color(0xFFC2410C),      // Orange
-    Color(0xFFE11D48),      // Ruby
-    Color(0xFF0EA5E9),      // Sky Blue
-    Color(0xFF14B8A6),      // Aqua
-    Color(0xFFA855F7)       // Purple
-)
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppThemeScreen(
     onBack: () -> Unit
 ) {
-    var selectedThemeMode by remember { mutableStateOf("Dark") }
-    var selectedAccentIndex by remember { mutableIntStateOf(0) }
+    val theme = LocalAppTheme.current
+    val currentThemeMode by ThemeManager.themeMode.collectAsState()
+    val currentAccentIndex by ThemeManager.accentIndex.collectAsState()
     var showThemeSheet by remember { mutableStateOf(false) }
 
-    val activeAccentColor = ACCENT_PALETTE[selectedAccentIndex] ?: TextPrimary
-
     Scaffold(
-        containerColor = OledBlack,
+        containerColor = theme.bg,
         topBar = {
             TopAppBar(
                 title = {
@@ -72,7 +43,7 @@ fun AppThemeScreen(
                         text = "App theme",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
-                        color = TextPrimary
+                        color = theme.tx
                     )
                 },
                 navigationIcon = {
@@ -80,12 +51,12 @@ fun AppThemeScreen(
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
                             contentDescription = "Back",
-                            tint = TextPrimary
+                            tint = theme.tx
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = OledBlack
+                    containerColor = theme.bg
                 )
             )
         }
@@ -96,21 +67,22 @@ fun AppThemeScreen(
                 .padding(innerPadding)
                 .padding(horizontal = 16.dp)
         ) {
-            // Dark Mode Selector Card
+            // Dark Mode Selector Card (prototype .row)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .height(64.dp)
                     .clip(RoundedCornerShape(16.dp))
-                    .background(SurfaceDark)
-                    .border(1.dp, BorderHairline, RoundedCornerShape(16.dp))
+                    .background(theme.sf)
+                    .border(1.dp, theme.ol, RoundedCornerShape(16.dp))
                     .clickable { showThemeSheet = true }
-                    .padding(16.dp),
+                    .padding(horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
                     imageVector = Icons.Default.DarkMode,
                     contentDescription = null,
-                    tint = activeAccentColor,
+                    tint = theme.acl,
                     modifier = Modifier.size(24.dp)
                 )
 
@@ -121,12 +93,16 @@ fun AppThemeScreen(
                         text = "Dark mode",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = TextPrimary
+                        color = theme.tx
                     )
                     Text(
-                        text = selectedThemeMode,
+                        text = when (currentThemeMode) {
+                            "dark" -> "Dark"
+                            "light" -> "Light"
+                            else -> "System default"
+                        },
                         fontSize = 13.sp,
-                        color = TextSecondary
+                        color = theme.s2
                     )
                 }
 
@@ -134,54 +110,62 @@ fun AppThemeScreen(
                     text = "Change",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium,
-                    color = activeAccentColor
+                    color = theme.acl
                 )
             }
 
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // Palette Header
+            // Palette Header (.lab in prototype)
             Text(
-                text = "ACCENT COLOR (22 PRESETS)",
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextSecondary,
-                letterSpacing = 0.8.sp
+                text = "Color",
+                fontSize = 13.sp,
+                color = theme.s2,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(bottom = 12.dp)
             )
 
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // 22-Color Grid
+            // 22-Color Swatch Grid (.cg in prototype)
             LazyVerticalGrid(
                 columns = GridCells.Fixed(5),
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                itemsIndexed(ACCENT_PALETTE) { index, color ->
-                    val isSelected = index == selectedAccentIndex
-                    val displayColor = color ?: TextPrimary
+                itemsIndexed(ACCENT_SWATCHES) { index, swatchColor ->
+                    val isSelected = currentAccentIndex == index
+                    val displayColor = swatchColor ?: theme.tx
 
                     Box(
                         modifier = Modifier
-                            .size(52.dp)
+                            .aspectRatio(1f)
                             .clip(CircleShape)
                             .background(displayColor)
                             .border(
                                 width = if (isSelected) 3.dp else 1.dp,
-                                color = if (isSelected) AccentWhite else BorderHairline,
+                                color = if (isSelected) theme.tx else Color.Transparent,
                                 shape = CircleShape
                             )
-                            .clickable { selectedAccentIndex = index },
+                            .clickable {
+                                ThemeManager.setAccentIndex(index)
+                            },
                         contentAlignment = Alignment.Center
                     ) {
                         if (isSelected) {
-                            Icon(
-                                imageVector = Icons.Default.Check,
-                                contentDescription = "Selected",
-                                tint = if (color == null || displayColor == TextPrimary) OledBlack else AccentWhite,
-                                modifier = Modifier.size(24.dp)
-                            )
+                            Box(
+                                modifier = Modifier
+                                    .size(24.dp)
+                                    .clip(CircleShape)
+                                    .background(theme.bg),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = "Selected",
+                                    tint = theme.tx,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
                         }
                     }
                 }
@@ -189,62 +173,73 @@ fun AppThemeScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Live Preview Card
+            // Live Bubble Preview
             Text(
-                text = "PREVIEW",
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextSecondary,
-                letterSpacing = 0.8.sp
+                text = "Preview",
+                fontSize = 13.sp,
+                color = theme.s2,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(bottom = 12.dp)
             )
-
-            Spacer(modifier = Modifier.height(12.dp))
 
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(SurfaceDark)
-                    .border(1.dp, BorderHairline, RoundedCornerShape(16.dp))
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(theme.sf)
+                    .border(1.dp, theme.ol, RoundedCornerShape(18.dp))
                     .padding(16.dp)
             ) {
-                Column {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    // Incoming Bubble
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(theme.sfa)
+                            .padding(horizontal = 14.dp, vertical = 10.dp)
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(14.dp))
-                                .background(activeAccentColor)
-                                .padding(horizontal = 14.dp, vertical = 10.dp)
-                        ) {
-                            Text(
-                                text = "Mestxa PQXDH end-to-end encrypted.",
-                                color = if (activeAccentColor == TextPrimary) OledBlack else AccentWhite,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
+                        Text(
+                            text = "Good morning! The prototypes look very clean.",
+                            color = theme.tx,
+                            fontSize = 14.sp
+                        )
+                    }
+
+                    // Outgoing Bubble
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.End)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(theme.ac)
+                            .padding(horizontal = 14.dp, vertical = 10.dp)
+                    ) {
+                        Text(
+                            text = "Everything looks solid. Sending feedback now.",
+                            color = theme.acx,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium
+                        )
                     }
                 }
             }
         }
     }
 
-    // Modal Bottom Sheet for Theme Mode
+    // Modal Bottom Sheet for Theme Mode Selection (.sheet in prototype)
     if (showThemeSheet) {
         ModalBottomSheet(
             onDismissRequest = { showThemeSheet = false },
-            containerColor = SurfaceDark,
+            containerColor = theme.sh,
             dragHandle = {
                 Box(
                     modifier = Modifier
                         .padding(vertical = 12.dp)
-                        .width(36.dp)
+                        .width(40.dp)
                         .height(4.dp)
-                        .clip(RoundedCornerShape(2.dp))
-                        .background(BorderHairline)
+                        .background(theme.s2, RoundedCornerShape(2.dp))
                 )
             }
         ) {
@@ -255,39 +250,53 @@ fun AppThemeScreen(
                     .padding(bottom = 32.dp)
             ) {
                 Text(
-                    text = "Choose Theme",
+                    text = "Dark mode",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
-                    color = TextPrimary,
+                    color = theme.tx,
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
 
-                listOf("Dark", "Light", "System default").forEach { mode ->
-                    val isModeSelected = mode == selectedThemeMode
+                val modes = listOf(
+                    Triple("dark", "Dark", "Permanent dark mode for OLED screens"),
+                    Triple("light", "Light", "Clean white minimalist aesthetic"),
+                    Triple("system", "System default", "Matches Android device setting")
+                )
+
+                modes.forEach { (modeKey, title, description) ->
+                    val isCurrent = currentThemeMode == modeKey
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .height(64.dp)
                             .clip(RoundedCornerShape(12.dp))
+                            .background(if (isCurrent) theme.sfa else Color.Transparent)
                             .clickable {
-                                selectedThemeMode = mode
+                                ThemeManager.setThemeMode(modeKey)
                                 showThemeSheet = false
                             }
-                            .padding(vertical = 14.dp, horizontal = 12.dp),
+                            .padding(horizontal = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = mode,
-                            fontSize = 16.sp,
-                            fontWeight = if (isModeSelected) FontWeight.Bold else FontWeight.Normal,
-                            color = if (isModeSelected) activeAccentColor else TextPrimary,
-                            modifier = Modifier.weight(1f)
-                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = title,
+                                fontSize = 16.sp,
+                                fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Medium,
+                                color = theme.tx
+                            )
+                            Text(
+                                text = description,
+                                fontSize = 12.sp,
+                                color = theme.s2
+                            )
+                        }
 
-                        if (isModeSelected) {
+                        if (isCurrent) {
                             Icon(
                                 imageVector = Icons.Default.Check,
                                 contentDescription = null,
-                                tint = activeAccentColor,
+                                tint = theme.acl,
                                 modifier = Modifier.size(20.dp)
                             )
                         }

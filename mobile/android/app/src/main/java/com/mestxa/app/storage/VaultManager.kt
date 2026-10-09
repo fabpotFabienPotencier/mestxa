@@ -77,6 +77,18 @@ object VaultManager {
         return getPrefs(context).getString(KEY_USER_COUNTRY, "US") ?: "US"
     }
 
+    fun getUsername(context: Context): String {
+        return getUserHandle(context)
+    }
+
+    fun saveDisplayName(context: Context, name: String) {
+        getPrefs(context).edit().putString(KEY_DISPLAY_NAME, name).apply()
+    }
+
+    fun saveUsername(context: Context, username: String) {
+        getPrefs(context).edit().putString(KEY_USER_HANDLE, username).apply()
+    }
+
     fun clearAccount(context: Context) {
         getPrefs(context).edit().clear().apply()
         cachedBundle = null
@@ -146,10 +158,44 @@ object VaultManager {
     }
 
     /**
-     * Derives deterministic 32-byte recipient key from contact identifier
+     * Cache and manage real recipient public identity keys
      */
-    fun getRecipientKey(contactName: String): ByteArray {
-        val digest = MessageDigest.getInstance("SHA-256")
-        return digest.digest("mestxa-contact:${contactName.trim().lowercase()}".toByteArray(Charsets.UTF_8))
+    private val recipientKeyCache = java.util.concurrent.ConcurrentHashMap<String, ByteArray>()
+
+    fun getRecipientKey(context: Context, contactIdentifier: String): ByteArray? {
+        val clean = contactIdentifier.trim().trimStart('@').lowercase()
+        recipientKeyCache[clean]?.let { return it }
+
+        // If identifier is already a valid 64-char hex public key
+        if (clean.length == 64 && clean.all { it in "0123456789abcdef" }) {
+            val bytes = MestxaBridge.hexToBytes(clean)
+            recipientKeyCache[clean] = bytes
+            return bytes
+        }
+
+        // Check SQLite contacts database
+        val contact = DatabaseManager.getInstance(context).getContactByIdentifier(clean)
+        if (contact != null && contact.userHex.length == 64) {
+            val bytes = MestxaBridge.hexToBytes(contact.userHex)
+            recipientKeyCache[clean] = bytes
+            recipientKeyCache[contact.username.lowercase()] = bytes
+            recipientKeyCache[contact.name.lowercase()] = bytes
+            return bytes
+        }
+
+        // Check conversation records for cached public key hex
+        val conv = DatabaseManager.getInstance(context).getConversation(clean)
+        if (conv != null && conv.contactPublicKeyHex.length == 64) {
+            val bytes = MestxaBridge.hexToBytes(conv.contactPublicKeyHex)
+            recipientKeyCache[clean] = bytes
+            return bytes
+        }
+
+        return null
+    }
+
+    fun saveRecipientKey(contactIdentifier: String, keyBytes: ByteArray) {
+        val clean = contactIdentifier.trim().trimStart('@').lowercase()
+        recipientKeyCache[clean] = keyBytes
     }
 }

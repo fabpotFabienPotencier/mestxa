@@ -36,6 +36,10 @@ sealed class Screen(val route: String) {
         fun createRoute(contactName: String) = "contact_info/$contactName"
     }
     object AppTheme : Screen("app_theme")
+    object Keypad : Screen("keypad")
+    object ScheduleCall : Screen("schedule_call")
+    object EditProfile : Screen("edit_profile")
+    object ArchivedChats : Screen("archived_chats")
 }
 
 @Composable
@@ -207,6 +211,15 @@ fun MestxaNavGraph(
                 },
                 onAddStatus = {
                     navController.navigate(Screen.AddStatus.route)
+                },
+                onOpenKeypad = {
+                    navController.navigate(Screen.Keypad.route)
+                },
+                onOpenScheduleCall = {
+                    navController.navigate(Screen.ScheduleCall.route)
+                },
+                onOpenArchivedChats = {
+                    navController.navigate(Screen.ArchivedChats.route)
                 }
             )
         }
@@ -255,7 +268,7 @@ fun MestxaNavGraph(
             )
         }
 
-        // 10. Settings & Zero-Cloud Security Vault
+        // 10. Settings Screen
         composable(Screen.Settings.route) {
             SettingsScreen(
                 onBack = {
@@ -266,6 +279,12 @@ fun MestxaNavGraph(
                 },
                 onOpenTheme = {
                     navController.navigate(Screen.AppTheme.route)
+                },
+                onOpenEditProfile = {
+                    navController.navigate(Screen.EditProfile.route)
+                },
+                onReplayIntro = {
+                    navController.navigate(Screen.Welcome.route)
                 },
                 onSignOut = {
                     navController.navigate(Screen.Welcome.route) {
@@ -345,6 +364,48 @@ fun MestxaNavGraph(
             AppThemeScreen(
                 onBack = {
                     navController.popBackStack()
+                }
+            )
+        }
+
+        // 16. Keypad Dialpad Screen
+        composable(Screen.Keypad.route) {
+            KeypadScreen(
+                onBack = {
+                    navController.popBackStack()
+                },
+                onStartCall = { dialed ->
+                    navController.navigate(Screen.ActiveCall.createRoute(dialed))
+                }
+            )
+        }
+
+        // 17. Schedule Call Screen
+        composable(Screen.ScheduleCall.route) {
+            ScheduleCallScreen(
+                onBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        // 18. Edit Profile Screen
+        composable(Screen.EditProfile.route) {
+            EditProfileScreen(
+                onBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        // 19. Archived Chats Screen
+        composable(Screen.ArchivedChats.route) {
+            ArchivedChatsScreen(
+                onBack = {
+                    navController.popBackStack()
+                },
+                onOpenChat = { _, contactName ->
+                    navController.navigate(Screen.Conversation.createRoute(contactName))
                 }
             )
         }

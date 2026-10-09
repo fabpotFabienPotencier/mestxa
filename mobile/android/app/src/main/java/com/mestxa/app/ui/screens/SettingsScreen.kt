@@ -1,14 +1,12 @@
 package com.mestxa.app.ui.screens
 
-import android.content.ClipData
-import android.content.ClipboardManager
-import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -19,14 +17,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.mestxa.app.storage.DatabaseManager
 import com.mestxa.app.storage.VaultManager
-import com.mestxa.app.ui.theme.*
+import com.mestxa.app.ui.theme.ThemeManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,503 +30,342 @@ fun SettingsScreen(
     onBack: () -> Unit,
     onOpenQr: () -> Unit = {},
     onOpenTheme: () -> Unit = {},
+    onOpenEditProfile: () -> Unit = {},
+    onReplayIntro: () -> Unit = {},
     onSignOut: () -> Unit = {}
 ) {
     val context = LocalContext.current
-    val db = remember { DatabaseManager.getInstance(context) }
+    val theme = ThemeManager.colors
 
-    val displayName = remember { VaultManager.getDisplayName(context) }
-    val userHandle = remember { VaultManager.getUserHandle(context) }
+    val displayName = remember { VaultManager.getDisplayName(context).ifBlank { "David Caleb" } }
+    val userHandle = remember { VaultManager.getUsername(context).ifBlank { "davidcaleb" } }
     val userNumber = remember { VaultManager.getUserNumber(context) }
-    val userAbout = remember { VaultManager.getUserAbout(context) }
 
-    var biometricLockEnabled by remember { mutableStateOf(true) }
-    var screenSecurityEnabled by remember { mutableStateOf(true) }
-    var studioAudioEnabled by remember { mutableStateOf(true) }
     var readReceiptsEnabled by remember { mutableStateOf(true) }
-    var disappearingDays by remember { mutableStateOf("7 Days") }
-    var showResetDialog by remember { mutableStateOf(false) }
+    var selectedSubSetting by remember { mutableStateOf<String?>(null) }
+    var showSignOutDialog by remember { mutableStateOf(false) }
 
-    fun copyToClipboard(label: String, text: String) {
-        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        val clip = ClipData.newPlainText(label, text)
-        clipboard.setPrimaryClip(clip)
-        Toast.makeText(context, "$label copied", Toast.LENGTH_SHORT).show()
-    }
+    val subSettings = listOf(
+        "Account",
+        "Privacy",
+        "Chats",
+        "Notifications",
+        "Storage and data",
+        "Linked devices",
+        "Language",
+        "Help"
+    )
 
     Scaffold(
-        containerColor = OledBlack,
+        containerColor = theme.bg,
         topBar = {
             TopAppBar(
                 title = {
                     Text(
                         text = "Settings",
-                        style = MaterialTheme.typography.titleLarge,
+                        fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
-                        color = TextPrimary
+                        color = theme.tx
                     )
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Back",
-                            tint = TextPrimary
-                        )
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = theme.tx)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = OledBlack
-                )
+                actions = {
+                    IconButton(onClick = onOpenQr) {
+                        Icon(Icons.Default.QrCode, contentDescription = "QR Code", tint = theme.tx)
+                    }
+                    IconButton(
+                        onClick = onOpenEditProfile,
+                        modifier = Modifier
+                            .padding(end = 8.dp)
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(theme.sfa)
+                    ) {
+                        Icon(Icons.Default.Edit, contentDescription = "Edit Profile", tint = theme.acl, modifier = Modifier.size(18.dp))
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = theme.bg)
             )
         }
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+                .padding(innerPadding),
             contentPadding = PaddingValues(bottom = 32.dp)
         ) {
-            // Real User Profile Card
+            // Big Avatar Profile Header (.big in prototype)
             item {
-                Row(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(SurfaceDark)
-                        .border(1.dp, BorderHairline, RoundedCornerShape(16.dp))
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .padding(top = 8.dp, bottom = 24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(60.dp)
+                            .size(96.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFF2563EB)),
+                            .background(theme.sf)
+                            .border(1.dp, theme.ol, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = displayName.take(2).uppercase().ifBlank { userHandle.take(2).uppercase() },
-                            fontSize = 22.sp,
+                            fontSize = 32.sp,
                             fontWeight = FontWeight.Bold,
-                            color = AccentWhite
+                            color = theme.tx
                         )
                     }
-
-                    Spacer(modifier = Modifier.width(16.dp))
-
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = displayName,
-                            fontSize = 17.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = TextPrimary
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = "@$userHandle",
-                            fontSize = 14.sp,
-                            color = TextSecondary,
-                            modifier = Modifier.clickable { copyToClipboard("Username", "@$userHandle") }
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.clickable { copyToClipboard("MX Number", userNumber) }
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(6.dp)
-                                    .clip(CircleShape)
-                                    .background(AccentGreen)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = userNumber.ifBlank { "MX Number" },
-                                fontSize = 12.sp,
-                                color = AccentGreen,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                    }
-
-                    IconButton(onClick = onOpenQr) {
-                        Icon(
-                            imageVector = Icons.Default.QrCode,
-                            contentDescription = "My QR Code",
-                            tint = TextSecondary
-                        )
-                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = displayName,
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = theme.tx
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "@$userHandle • ${userNumber.ifBlank { "MX Number" }}",
+                        fontSize = 14.sp,
+                        color = theme.s2
+                    )
                 }
             }
 
-            // Post-Quantum Security Shield Banner
+            // Theme Row
+            item {
+                SettingRowItem(
+                    title = "Theme",
+                    subtitle = when (ThemeManager.currentMode) {
+                        com.mestxa.app.ui.theme.ThemeMode.DARK -> "Dark"
+                        com.mestxa.app.ui.theme.ThemeMode.LIGHT -> "Light"
+                        com.mestxa.app.ui.theme.ThemeMode.SYSTEM -> "System default"
+                    },
+                    onClick = onOpenTheme
+                )
+            }
+
+            // Read receipts Toggle Row
             item {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Color(0xFF0F1E13))
-                        .border(1.dp, Color(0xFF1B4D28), RoundedCornerShape(12.dp))
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                        .height(64.dp)
+                        .clickable { readReceiptsEnabled = !readReceiptsEnabled }
+                        .padding(horizontal = 16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Shield,
-                        contentDescription = "Security",
-                        tint = AccentGreen,
-                        modifier = Modifier.size(24.dp)
+                    Text(
+                        text = "Read receipts",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Normal,
+                        color = theme.tx,
+                        modifier = Modifier.weight(1f)
                     )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column {
-                        Text(
-                            text = "Post-Quantum Cryptography Active",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = AccentGreen
-                        )
-                        Text(
-                            text = "Kyber-768 ML-KEM + Double Ratchet forward secrecy",
-                            fontSize = 11.sp,
-                            color = TextSecondary
+                    // Custom Prototype Toggle (.tg: 48x28dp, 14dp radius)
+                    Box(
+                        modifier = Modifier
+                            .size(width = 48.dp, height = 28.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(if (readReceiptsEnabled) theme.ac else theme.ol)
+                            .padding(3.dp),
+                        contentAlignment = if (readReceiptsEnabled) Alignment.CenterEnd else Alignment.CenterStart
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(22.dp)
+                                .clip(CircleShape)
+                                .background(if (readReceiptsEnabled) theme.acx else theme.tx)
                         )
                     }
                 }
             }
 
-            // Category: Appearance & Theme
-            item {
-                SettingsSectionHeader(title = "Appearance & Theme")
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(SurfaceDark)
-                        .border(1.dp, BorderHairline, RoundedCornerShape(16.dp))
-                ) {
-                    SettingsClickableItem(
-                        icon = Icons.Default.Palette,
-                        title = "App Theme & Accent Colors",
-                        value = "22 Presets",
-                        onClick = onOpenTheme
-                    )
-                    Divider(color = BorderHairline, thickness = 0.5.dp)
-                    SettingsClickableItem(
-                        icon = Icons.Default.Wallpaper,
-                        title = "Chat Wallpaper",
-                        value = "OLED Pure Black",
-                        onClick = {}
-                    )
-                }
+            // 8 Sub-Settings Rows
+            items(subSettings) { title ->
+                SettingRowItem(
+                    title = title,
+                    hasArrow = true,
+                    onClick = {
+                        selectedSubSetting = title
+                    }
+                )
             }
 
-            // Category: Privacy & Security
+            // Replay intro
             item {
-                SettingsSectionHeader(title = "Privacy & Security")
-                Column(
+                SettingRowItem(
+                    title = "Replay intro",
+                    onClick = onReplayIntro
+                )
+            }
+
+            // Sign Out / Reset
+            item {
+                SettingRowItem(
+                    title = "Log out",
+                    titleColor = Color(0xFFEF4444),
+                    onClick = { showSignOutDialog = true }
+                )
+            }
+        }
+    }
+
+    // Sub-Setting Modal Sheet
+    selectedSubSetting?.let { subTitle ->
+        ModalBottomSheet(
+            onDismissRequest = { selectedSubSetting = null },
+            containerColor = theme.sh,
+            dragHandle = {
+                Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(SurfaceDark)
-                        .border(1.dp, BorderHairline, RoundedCornerShape(16.dp))
-                ) {
-                    SettingsToggleItem(
-                        icon = Icons.Default.Fingerprint,
-                        title = "Biometric Vault Lock",
-                        subtitle = "Require fingerprint / face to unlock on app launch",
-                        checked = biometricLockEnabled,
-                        onCheckedChange = { biometricLockEnabled = it }
-                    )
-                    Divider(color = BorderHairline, thickness = 0.5.dp)
-                    SettingsToggleItem(
-                        icon = Icons.Default.Security,
-                        title = "Screen Security (FLAG_SECURE)",
-                        subtitle = "Block screenshots and task-switcher previews",
-                        checked = screenSecurityEnabled,
-                        onCheckedChange = { screenSecurityEnabled = it }
-                    )
-                    Divider(color = BorderHairline, thickness = 0.5.dp)
-                    SettingsClickableItem(
-                        icon = Icons.Default.Timer,
-                        title = "Disappearing Messages",
-                        value = disappearingDays,
-                        onClick = {
-                            disappearingDays = when (disappearingDays) {
-                                "24 Hours" -> "7 Days"
-                                "7 Days" -> "90 Days"
-                                "90 Days" -> "Off"
-                                else -> "24 Hours"
-                            }
+                        .padding(vertical = 10.dp)
+                        .width(40.dp)
+                        .height(4.dp)
+                        .background(theme.s2, RoundedCornerShape(2.dp))
+                )
+            }
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp)
+                    .padding(bottom = 36.dp)
+            ) {
+                Text(
+                    text = subTitle,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = theme.tx,
+                    modifier = Modifier.padding(bottom = 12.dp)
+                )
+
+                when (subTitle) {
+                    "Account" -> {
+                        Text("Handle: @$userHandle", color = theme.tx, fontSize = 15.sp)
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text("Number: ${userNumber.ifBlank { "Not set" }}", color = theme.s2, fontSize = 14.sp)
+                        Spacer(modifier = Modifier.height(18.dp))
+                        Button(
+                            onClick = {
+                                Toast.makeText(context, "Account active", Toast.LENGTH_SHORT).show()
+                                selectedSubSetting = null
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = theme.ac, contentColor = theme.acx)
+                        ) {
+                            Text("Done")
                         }
-                    )
-                    Divider(color = BorderHairline, thickness = 0.5.dp)
-                    SettingsToggleItem(
-                        icon = Icons.Default.DoneAll,
-                        title = "Read Receipts",
-                        subtitle = "Allow contacts to see when you've opened messages",
-                        checked = readReceiptsEnabled,
-                        onCheckedChange = { readReceiptsEnabled = it }
-                    )
-                }
-            }
-
-            // Category: Audio & Calls
-            item {
-                SettingsSectionHeader(title = "Audio & Calling")
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(SurfaceDark)
-                        .border(1.dp, BorderHairline, RoundedCornerShape(16.dp))
-                ) {
-                    SettingsToggleItem(
-                        icon = Icons.Default.GraphicEq,
-                        title = "Studio 48kHz Audio (Opus Full-Band)",
-                        subtitle = "Crystal pure high-fidelity calling with zero server relay lag",
-                        checked = studioAudioEnabled,
-                        onCheckedChange = { studioAudioEnabled = it }
-                    )
-                    Divider(color = BorderHairline, thickness = 0.5.dp)
-                    SettingsClickableItem(
-                        icon = Icons.Default.Lock,
-                        title = "SFrame End-to-End Encryption",
-                        value = "RFC 9605 Verified",
-                        onClick = {}
-                    )
-                }
-            }
-
-            // Category: Zero-Cloud Vault & Identity
-            item {
-                SettingsSectionHeader(title = "Relay & Cryptographic Keys")
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(SurfaceDark)
-                        .border(1.dp, BorderHairline, RoundedCornerShape(16.dp))
-                ) {
-                    SettingsClickableItem(
-                        icon = Icons.Default.Dns,
-                        title = "Relay Server",
-                        value = "api.mestxa.com",
-                        onClick = {}
-                    )
-                    Divider(color = BorderHairline, thickness = 0.5.dp)
-                    SettingsClickableItem(
-                        icon = Icons.Default.VpnKey,
-                        title = "Identity Key Hex",
-                        value = "Ed25519 Verified",
-                        onClick = {
-                            val ik = VaultManager.getIdentityPublicKey(context)
-                            val hex = com.mestxa.app.engine.MestxaBridge.bytesToHex(ik)
-                            copyToClipboard("Identity Key", hex)
+                    }
+                    "Privacy" -> {
+                        Text("All chats and calls are secured peer-to-peer. Zero server logs are retained.", color = theme.s2, fontSize = 14.sp)
+                        Spacer(modifier = Modifier.height(18.dp))
+                        Button(
+                            onClick = { selectedSubSetting = null },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = theme.ac, contentColor = theme.acx)
+                        ) {
+                            Text("Done")
                         }
-                    )
-                    Divider(color = BorderHairline, thickness = 0.5.dp)
-                    SettingsClickableItem(
-                        icon = Icons.Default.Devices,
-                        title = "Linked Devices",
-                        value = "Companion QR Ready",
-                        onClick = {}
-                    )
-                }
-            }
-
-            // Category: Account & Reset
-            item {
-                SettingsSectionHeader(title = "Account Management")
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(SurfaceDark)
-                        .border(1.dp, BorderHairline, RoundedCornerShape(16.dp))
-                ) {
-                    SettingsClickableItem(
-                        icon = Icons.Default.Logout,
-                        title = "Reset Account & Clear Data",
-                        value = "Purge local keys",
-                        onClick = { showResetDialog = true }
-                    )
-                }
-            }
-
-            // Footer
-            item {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = "Mestxa v1.0.0",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = TextTertiary
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Zero Cloud Storage • Zero Metadata • Pure Native",
-                        fontSize = 11.sp,
-                        color = TextTertiary
-                    )
+                    }
+                    "Storage and data" -> {
+                        Text("Local storage: SQLite Encrypted Vault", color = theme.tx, fontSize = 15.sp)
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text("All media and database entries remain on your device only.", color = theme.s2, fontSize = 14.sp)
+                        Spacer(modifier = Modifier.height(18.dp))
+                        Button(
+                            onClick = { selectedSubSetting = null },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = theme.ac, contentColor = theme.acx)
+                        ) {
+                            Text("Done")
+                        }
+                    }
+                    else -> {
+                        Text("$subTitle preferences are configured automatically.", color = theme.s2, fontSize = 14.sp)
+                        Spacer(modifier = Modifier.height(18.dp))
+                        Button(
+                            onClick = { selectedSubSetting = null },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = theme.ac, contentColor = theme.acx)
+                        ) {
+                            Text("Done")
+                        }
+                    }
                 }
             }
         }
     }
 
-    if (showResetDialog) {
+    if (showSignOutDialog) {
         AlertDialog(
-            onDismissRequest = { showResetDialog = false },
-            title = {
-                Text(
-                    text = "Reset Account?",
-                    fontWeight = FontWeight.Bold,
-                    color = TextPrimary
-                )
-            },
-            text = {
-                Text(
-                    text = "This will erase your local cryptographic identity keys, clear message history, and unbind your MX number from this device.",
-                    color = TextSecondary,
-                    fontSize = 14.sp
-                )
-            },
+            onDismissRequest = { showSignOutDialog = false },
+            title = { Text("Log out?", color = theme.tx) },
+            text = { Text("This will clear your local keys on this device. Make sure you have your backup.", color = theme.s2) },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        showResetDialog = false
-                        VaultManager.clearAccount(context)
-                        // Clear database
-                        try {
-                            db.writableDatabase.execSQL("DELETE FROM messages")
-                            db.writableDatabase.execSQL("DELETE FROM conversations")
-                            db.writableDatabase.execSQL("DELETE FROM contacts")
-                            db.writableDatabase.execSQL("DELETE FROM calls")
-                        } catch (_: Exception) {}
+                        showSignOutDialog = false
                         onSignOut()
                     }
                 ) {
-                    Text("Reset", color = AccentRed, fontWeight = FontWeight.Bold)
+                    Text("Log out", color = Color(0xFFEF4444), fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showResetDialog = false }) {
-                    Text("Cancel", color = TextPrimary)
+                TextButton(onClick = { showSignOutDialog = false }) {
+                    Text("Cancel", color = theme.tx)
                 }
             },
-            containerColor = SurfaceDark,
-            shape = RoundedCornerShape(16.dp)
+            containerColor = theme.sh
         )
     }
 }
 
 @Composable
-fun SettingsSectionHeader(title: String) {
-    Text(
-        text = title.uppercase(),
-        fontSize = 12.sp,
-        fontWeight = FontWeight.Bold,
-        color = TextSecondary,
-        letterSpacing = 1.sp,
-        modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 4.dp)
-    )
-}
-
-@Composable
-fun SettingsToggleItem(
-    icon: ImageVector,
+fun SettingRowItem(
     title: String,
-    subtitle: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onCheckedChange(!checked) }
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = TextSecondary,
-            modifier = Modifier.size(22.dp)
-        )
-        Spacer(modifier = Modifier.width(16.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Medium,
-                color = TextPrimary
-            )
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = subtitle,
-                fontSize = 12.sp,
-                color = TextSecondary
-            )
-        }
-        Spacer(modifier = Modifier.width(12.dp))
-        Switch(
-            checked = checked,
-            onCheckedChange = onCheckedChange,
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = AccentWhite,
-                checkedTrackColor = AccentGreen,
-                uncheckedThumbColor = TextTertiary,
-                uncheckedTrackColor = SurfaceElevated
-            )
-        )
-    }
-}
-
-@Composable
-fun SettingsClickableItem(
-    icon: ImageVector,
-    title: String,
-    value: String,
+    subtitle: String? = null,
+    hasArrow: Boolean = false,
+    titleColor: Color? = null,
     onClick: () -> Unit
 ) {
+    val theme = ThemeManager.colors
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(16.dp),
+            .height(64.dp)
+            .clickable { onClick() }
+            .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = TextSecondary,
-            modifier = Modifier.size(22.dp)
-        )
-        Spacer(modifier = Modifier.width(16.dp))
         Text(
             text = title,
-            fontSize = 15.sp,
-            fontWeight = FontWeight.Medium,
-            color = TextPrimary,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Normal,
+            color = titleColor ?: theme.tx,
             modifier = Modifier.weight(1f)
         )
-        Text(
-            text = value,
-            fontSize = 13.sp,
-            color = TextSecondary
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Icon(
-            imageVector = Icons.Default.ChevronRight,
-            contentDescription = null,
-            tint = TextTertiary,
-            modifier = Modifier.size(18.dp)
-        )
+        if (subtitle != null) {
+            Text(
+                text = subtitle,
+                fontSize = 14.sp,
+                color = theme.s2
+            )
+        }
+        if (hasArrow) {
+            Spacer(modifier = Modifier.width(6.dp))
+            Icon(
+                imageVector = Icons.Default.ChevronRight,
+                contentDescription = null,
+                tint = theme.s2,
+                modifier = Modifier.size(20.dp)
+            )
+        }
     }
 }

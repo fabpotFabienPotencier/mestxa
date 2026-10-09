@@ -288,6 +288,30 @@ class DatabaseManager private constructor(context: Context) :
         db.delete("messages", "conversation_id = ?", arrayOf(id))
     }
 
+    fun setConversationMuted(id: String, isMuted: Boolean) {
+        val db = writableDatabase
+        val cv = ContentValues().apply { put("is_muted", if (isMuted) 1 else 0) }
+        db.update("conversations", cv, "id = ?", arrayOf(id))
+    }
+
+    fun setConversationRead(id: String, isRead: Boolean) {
+        val db = writableDatabase
+        val cv = ContentValues().apply {
+            put("is_read", if (isRead) 1 else 0)
+            if (isRead) put("unread_count", 0)
+        }
+        db.update("conversations", cv, "id = ?", arrayOf(id))
+    }
+
+    fun markAllConversationsRead() {
+        val db = writableDatabase
+        val cv = ContentValues().apply {
+            put("is_read", 1)
+            put("unread_count", 0)
+        }
+        db.update("conversations", cv, null, null)
+    }
+
     // -------------------------------------------------------------------------
     // Messages
     // -------------------------------------------------------------------------
@@ -370,6 +394,12 @@ class DatabaseManager private constructor(context: Context) :
         db.update("messages", cv, "id = ?", arrayOf(messageId))
     }
 
+    fun updateCardData(messageId: String, cardData: String) {
+        val db = writableDatabase
+        val cv = ContentValues().apply { put("card_data", cardData) }
+        db.update("messages", cv, "id = ?", arrayOf(messageId))
+    }
+
     fun deleteMessage(messageId: String, forEveryone: Boolean) {
         val db = writableDatabase
         if (forEveryone) {
@@ -381,6 +411,15 @@ class DatabaseManager private constructor(context: Context) :
         } else {
             db.delete("messages", "id = ?", arrayOf(messageId))
         }
+    }
+
+    fun clearMessages(conversationId: String) {
+        val db = writableDatabase
+        db.delete("messages", "conversation_id = ?", arrayOf(conversationId))
+        val cv = ContentValues().apply {
+            put("last_message", "")
+        }
+        db.update("conversations", cv, "id = ?", arrayOf(conversationId))
     }
 
     // -------------------------------------------------------------------------
@@ -419,6 +458,71 @@ class DatabaseManager private constructor(context: Context) :
             put("added_at_ms", c.addedAtMs)
         }
         db.insertWithOnConflict("contacts", null, cv, SQLiteDatabase.CONFLICT_REPLACE)
+    }
+
+    fun getContactByIdentifier(query: String): ContactRecord? {
+        val db = readableDatabase
+        val clean = query.trim().trimStart('@')
+        val cursor = db.query(
+            "contacts",
+            null,
+            "user_hex = ? OR username = ? OR number = ? OR name = ?",
+            arrayOf(clean, clean, clean, clean),
+            null, null, null, "1"
+        )
+        cursor.use {
+            if (it.moveToFirst()) {
+                return ContactRecord(
+                    userHex = it.getString(it.getColumnIndexOrThrow("user_hex")),
+                    username = it.getString(it.getColumnIndexOrThrow("username")),
+                    number = it.getString(it.getColumnIndexOrThrow("number")),
+                    name = it.getString(it.getColumnIndexOrThrow("name")),
+                    about = it.getString(it.getColumnIndexOrThrow("about")) ?: "Available",
+                    addedAtMs = it.getLong(it.getColumnIndexOrThrow("added_at_ms"))
+                )
+            }
+        }
+        return null
+    }
+
+    fun getConversation(id: String): ConversationRecord? {
+        val db = readableDatabase
+        val cursor = db.query(
+            "conversations",
+            null,
+            "id = ? OR contact_name = ? OR contact_handle = ?",
+            arrayOf(id, id, id),
+            null, null, null, "1"
+        )
+        cursor.use {
+            if (it.moveToFirst()) {
+                return ConversationRecord(
+                    id = it.getString(it.getColumnIndexOrThrow("id")),
+                    contactName = it.getString(it.getColumnIndexOrThrow("contact_name")),
+                    contactHandle = it.getString(it.getColumnIndexOrThrow("contact_handle")) ?: "",
+                    contactNumber = it.getString(it.getColumnIndexOrThrow("contact_number")) ?: "",
+                    contactPublicKeyHex = it.getString(it.getColumnIndexOrThrow("contact_public_key_hex")) ?: "",
+                    lastMessage = it.getString(it.getColumnIndexOrThrow("last_message")) ?: "",
+                    timestamp = it.getString(it.getColumnIndexOrThrow("timestamp")) ?: "",
+                    unreadCount = it.getInt(it.getColumnIndexOrThrow("unread_count")),
+                    isDelivered = it.getInt(it.getColumnIndexOrThrow("is_delivered")) == 1,
+                    isRead = it.getInt(it.getColumnIndexOrThrow("is_read")) == 1,
+                    isPinned = it.getInt(it.getColumnIndexOrThrow("is_pinned")) == 1,
+                    isArchived = it.getInt(it.getColumnIndexOrThrow("is_archived")) == 1,
+                    isMuted = it.getInt(it.getColumnIndexOrThrow("is_muted")) == 1,
+                    isFavorite = it.getInt(it.getColumnIndexOrThrow("is_favorite")) == 1,
+                    colorGradientIdx = it.getInt(it.getColumnIndexOrThrow("color_gradient_idx")),
+                    updatedAtMs = it.getLong(it.getColumnIndexOrThrow("updated_at_ms"))
+                )
+            }
+        }
+        return null
+    }
+
+    fun setMessageStarred(messageId: String, isStarred: Boolean) {
+        val db = writableDatabase
+        val cv = ContentValues().apply { put("is_starred", if (isStarred) 1 else 0) }
+        db.update("messages", cv, "id = ?", arrayOf(messageId))
     }
 
     // -------------------------------------------------------------------------

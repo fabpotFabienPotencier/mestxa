@@ -339,4 +339,36 @@ class MestxaApiClient(
             null
         }
     }
+
+    /**
+     * Fetch public prekey bundle for a user (@username or user_hex) from relay.
+     */
+    suspend fun fetchPrekeys(target: String): PrekeyBundle? = withContext(Dispatchers.IO) {
+        val clean = target.trim()
+        val request = Request.Builder()
+            .url("$baseUrl/v1/prekeys/$clean")
+            .get()
+            .build()
+
+        try {
+            httpClient.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) return@withContext null
+                val bodyStr = response.body?.string() ?: return@withContext null
+                val obj = JSONObject(bodyStr)
+                val otHex = obj.optString("one_time_prekey_hex", "")
+                val otks = if (otHex.isNotEmpty()) listOf(MestxaBridge.hexToBytes(otHex)) else emptyList()
+                PrekeyBundle(
+                    identityKey = MestxaBridge.hexToBytes(obj.getString("identity_key_hex")),
+                    signedPrekey = MestxaBridge.hexToBytes(obj.getString("signed_prekey_hex")),
+                    signature = MestxaBridge.hexToBytes(obj.getString("signed_prekey_sig_hex")),
+                    kyberPublicKey = MestxaBridge.hexToBytes(obj.getString("kyber_prekey_hex")),
+                    kyberSignature = MestxaBridge.hexToBytes(obj.getString("kyber_sig_hex")),
+                    oneTimePrekeys = otks
+                )
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to fetch prekeys for $clean: ${e.message}")
+            null
+        }
+    }
 }

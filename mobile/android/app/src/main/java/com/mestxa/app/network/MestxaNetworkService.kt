@@ -12,19 +12,31 @@ import okio.ByteString.Companion.toByteString
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
+import android.content.Context
+import com.mestxa.app.MestxaApplication
+import com.mestxa.app.storage.VaultManager
+
 class MestxaNetworkService(
     private val serverBaseUrl: String = "wss://api.mestxa.com/v1/gateway",
-    private val clientPublicKeyHex: String = "0101010101010101010101010101010101010101010101010101010101010101",
-    private val clientPrivateKey: ByteArray? = null
+    private var clientPublicKeyHex: String = "",
+    private var clientPrivateKey: ByteArray? = null
 ) {
     companion object {
         private const val TAG = "MestxaNetwork"
         @Volatile
         private var instance: MestxaNetworkService? = null
 
-        fun getInstance(): MestxaNetworkService {
+        fun getInstance(context: Context? = null): MestxaNetworkService {
             return instance ?: synchronized(this) {
-                instance ?: MestxaNetworkService().also { instance = it }
+                instance ?: MestxaNetworkService().also { svc ->
+                    instance = svc
+                    try {
+                        val ctx = context ?: MestxaApplication.instance
+                        svc.refreshCredentials(ctx)
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Deferred credential initialization: ${e.message}")
+                    }
+                }
             }
         }
     }
@@ -48,14 +60,38 @@ class MestxaNetworkService(
     private val _deliveryAcks = MutableSharedFlow<DeliveryAck>(extraBufferCapacity = 64)
     val deliveryAcks: SharedFlow<DeliveryAck> = _deliveryAcks.asSharedFlow()
 
-    fun connect() {
+    fun refreshCredentials(context: Context) {
+        try {
+            val bundle = VaultManager.getOrCreateIdentityBundle(context)
+            clientPublicKeyHex = MestxaBridge.bytesToHex(bundle.identityKey).lowercase()
+            clientPrivateKey = bundle.identityPrivateKey
+            Log.i(TAG, "Network credentials loaded for identity: $clientPublicKeyHex")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to load identity credentials: ${e.message}")
+        }
+    }
+
+    fun connect(context: Context? = null) {
         if (isConnected.get()) return
+
+        if (clientPublicKeyHex.isEmpty() || clientPrivateKey == null) {
+            try {
+                refreshCredentials(context ?: MestxaApplication.instance)
+            } catch (e: Exception) {
+                Log.w(TAG, "Credential refresh on connect failed: ${e.message}")
+            }
+        }
+
+        if (clientPublicKeyHex.isEmpty()) {
+            Log.w(TAG, "Skipping connect: User not yet registered with an identity bundle.")
+            return
+        }
 
         val ts = System.currentTimeMillis() / 1000
         val sigParam = if (clientPrivateKey != null && MestxaBridge.isReady()) {
             try {
                 val authMsg = "mestxa-auth:$clientPublicKeyHex:$ts".toByteArray(Charsets.UTF_8)
-                val sig = MestxaBridge.sign(clientPrivateKey, authMsg)
+                val sig = MestxaBridge.sign(clientPrivateKey!!, authMsg)
                 "&sig=${MestxaBridge.bytesToHex(sig)}"
             } catch (e: Exception) {
                 Log.w(TAG, "Failed to sign handshake challenge: ${e.message}")

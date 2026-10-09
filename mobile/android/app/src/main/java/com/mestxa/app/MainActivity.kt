@@ -5,14 +5,17 @@ import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Surface
-import androidx.compose.ui.Modifier
-import com.mestxa.app.ui.navigation.MestxaNavGraph
-import com.mestxa.app.ui.theme.MestxaTheme
-import com.mestxa.app.ui.theme.OledBlack
-
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import com.mestxa.app.storage.VaultManager
+import com.mestxa.app.ui.navigation.MestxaNavGraph
+import com.mestxa.app.ui.navigation.Screen
+import com.mestxa.app.ui.theme.MestxaTheme
+import com.mestxa.app.ui.theme.ThemeManager
 
 class MainActivity : ComponentActivity() {
 
@@ -38,20 +41,30 @@ class MainActivity : ComponentActivity() {
             )
         )
 
-        val isRegistered = com.mestxa.app.storage.VaultManager.isRegistered(this)
+        val isRegistered = VaultManager.isRegistered(this)
         val startDestination = if (isRegistered) {
-            com.mestxa.app.ui.navigation.Screen.Chats.route
+            Screen.Chats.route
         } else {
-            com.mestxa.app.ui.navigation.Screen.Welcome.route
+            Screen.Welcome.route
         }
 
         setContent {
             MestxaTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = OledBlack
+                val theme = ThemeManager.colors
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(theme.bg),
+                    contentAlignment = Alignment.Center
                 ) {
-                    MestxaNavGraph(startDestination = startDestination)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .widthIn(max = 420.dp)
+                            .fillMaxWidth()
+                    ) {
+                        MestxaNavGraph(startDestination = startDestination)
+                    }
                 }
             }
         }

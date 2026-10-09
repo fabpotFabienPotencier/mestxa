@@ -1,5 +1,6 @@
 package com.mestxa.app.ui.screens
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -15,12 +16,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.mestxa.app.ui.theme.*
+import com.mestxa.app.ui.theme.ThemeManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -30,12 +30,14 @@ fun ContactInfoScreen(
     onStartCall: (String) -> Unit = {},
     onStartVideoCall: (String) -> Unit = {}
 ) {
+    val context = LocalContext.current
+    val theme = ThemeManager.colors
+
     var notificationsEnabled by remember { mutableStateOf(true) }
-    var disappearingTimer by remember { mutableStateOf("7 Days") }
-    var showSafetyNumberDialog by remember { mutableStateOf(false) }
+    var disappearingEnabled by remember { mutableStateOf(false) }
 
     Scaffold(
-        containerColor = OledBlack,
+        containerColor = theme.bg,
         topBar = {
             TopAppBar(
                 title = {},
@@ -44,22 +46,11 @@ fun ContactInfoScreen(
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
                             contentDescription = "Back",
-                            tint = TextPrimary
+                            tint = theme.tx
                         )
                     }
                 },
-                actions = {
-                    IconButton(onClick = { /* more options */ }) {
-                        Icon(
-                            imageVector = Icons.Default.MoreVert,
-                            contentDescription = "More",
-                            tint = TextPrimary
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = OledBlack
-                )
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = theme.bg)
             )
         }
     ) { innerPadding ->
@@ -67,30 +58,28 @@ fun ContactInfoScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Big Contact Header
+            // Big Avatar & Name Header (.big in prototype)
             item {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 12.dp),
+                        .padding(top = 8.dp, bottom = 24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(110.dp)
+                            .size(120.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFF1E3A5F))
-                            .border(2.dp, BorderHairline, CircleShape),
+                            .background(theme.sf)
+                            .border(1.dp, theme.ol, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = contactName.take(1).uppercase(),
+                            text = contactName.take(2).uppercase(),
                             fontSize = 44.sp,
                             fontWeight = FontWeight.Bold,
-                            color = AccentWhite
+                            color = theme.tx
                         )
                     }
 
@@ -100,347 +89,186 @@ fun ContactInfoScreen(
                         text = contactName,
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Bold,
-                        color = TextPrimary
+                        color = theme.tx
                     )
 
                     Spacer(modifier = Modifier.height(4.dp))
 
                     Text(
-                        text = "Online • NIST ML-KEM-768 Verified",
-                        fontSize = 13.sp,
-                        color = AccentGreen,
+                        text = "online",
+                        fontSize = 14.sp,
+                        color = theme.acl,
                         fontWeight = FontWeight.Medium
                     )
                 }
             }
 
-            // Quick Actions: Voice, Video, Chat
+            // Quick Actions: Voice, Video, Chat (.qa)
             item {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 24.dp),
+                    horizontalArrangement = Arrangement.Center
                 ) {
-                    QuickActionButton(
-                        icon = Icons.Default.Call,
-                        label = "Voice",
-                        onClick = { onStartCall(contactName) }
-                    )
-                    QuickActionButton(
-                        icon = Icons.Default.Videocam,
-                        label = "Video",
-                        onClick = { onStartVideoCall(contactName) }
-                    )
-                    QuickActionButton(
-                        icon = Icons.Default.ChatBubble,
-                        label = "Chat",
-                        onClick = onBack
-                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+                        ContactQuickActionPill(
+                            icon = Icons.Default.Phone,
+                            label = "Voice",
+                            onClick = { onStartCall(contactName) }
+                        )
+                        ContactQuickActionPill(
+                            icon = Icons.Default.Videocam,
+                            label = "Video",
+                            onClick = { onStartVideoCall(contactName) }
+                        )
+                        ContactQuickActionPill(
+                            icon = Icons.Default.ChatBubble,
+                            label = "Chat",
+                            onClick = onBack
+                        )
+                    }
                 }
             }
 
-            // Section: Cryptographic Verification
+            // Notifications Toggle Row
             item {
-                Text(
-                    text = "SECURITY & ENCRYPTION",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextSecondary,
-                    letterSpacing = 0.8.sp
+                ContactToggleRow(
+                    title = "Notifications",
+                    checked = notificationsEnabled,
+                    onToggle = { notificationsEnabled = !notificationsEnabled }
                 )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(SurfaceDark)
-                        .border(1.dp, BorderHairline, RoundedCornerShape(16.dp))
-                ) {
-                    ContactSettingRow(
-                        icon = Icons.Default.Lock,
-                        title = "Encryption",
-                        subtitle = "Messages and calls are end-to-end encrypted with PQXDH & Kyber-768. Tap to verify.",
-                        onClick = { showSafetyNumberDialog = true }
-                    )
-                    Divider(color = BorderHairline, thickness = 0.5.dp)
-                    ContactSettingRow(
-                        icon = Icons.Default.QrCode,
-                        title = "Verify Safety Number",
-                        subtitle = "Scan QR code or compare 60-digit fingerprint",
-                        onClick = { showSafetyNumberDialog = true }
-                    )
-                }
             }
 
-            // Section: Privacy & Timers
+            // Disappearing Messages Toggle Row
             item {
-                Text(
-                    text = "CHAT SETTINGS",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextSecondary,
-                    letterSpacing = 0.8.sp
+                ContactToggleRow(
+                    title = "Disappearing messages",
+                    checked = disappearingEnabled,
+                    onToggle = { disappearingEnabled = !disappearingEnabled }
                 )
+            }
 
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Column(
+            // Media and Files Row
+            item {
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(SurfaceDark)
-                        .border(1.dp, BorderHairline, RoundedCornerShape(16.dp))
+                        .height(64.dp)
+                        .clickable { Toast.makeText(context, "Media and files", Toast.LENGTH_SHORT).show() }
+                        .padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Notifications,
-                            contentDescription = null,
-                            tint = TextSecondary,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Notifications",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = TextPrimary
-                            )
-                        }
-                        Switch(
-                            checked = notificationsEnabled,
-                            onCheckedChange = { notificationsEnabled = it },
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = AccentWhite,
-                                checkedTrackColor = AccentGreen,
-                                uncheckedThumbColor = TextSecondary,
-                                uncheckedTrackColor = SurfaceElevated
-                            )
-                        )
-                    }
-
-                    Divider(color = BorderHairline, thickness = 0.5.dp)
-
-                    ContactSettingRow(
-                        icon = Icons.Default.Timer,
-                        title = "Disappearing Messages",
-                        subtitle = disappearingTimer,
-                        onClick = {
-                            disappearingTimer = when (disappearingTimer) {
-                                "24 Hours" -> "7 Days"
-                                "7 Days" -> "90 Days"
-                                "90 Days" -> "Off"
-                                else -> "24 Hours"
-                            }
-                        }
+                    Text(
+                        text = "Media and files",
+                        fontSize = 16.sp,
+                        color = theme.tx,
+                        modifier = Modifier.weight(1f)
                     )
-
-                    Divider(color = BorderHairline, thickness = 0.5.dp)
-
-                    ContactSettingRow(
-                        icon = Icons.Default.PermMedia,
-                        title = "Media, Links and Docs",
-                        subtitle = "18 files shared",
-                        onClick = { /* Media browser */ }
+                    Icon(
+                        imageVector = Icons.Default.ChevronRight,
+                        contentDescription = null,
+                        tint = theme.s2,
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             }
 
-            // Section: Danger Zone (Block / Clear)
+            // Block Contact Row
             item {
-                Column(
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(SurfaceDark)
-                        .border(1.dp, BorderHairline, RoundedCornerShape(16.dp))
+                        .height(64.dp)
+                        .clickable {
+                            Toast.makeText(context, "$contactName blocked", Toast.LENGTH_SHORT).show()
+                            onBack()
+                        }
+                        .padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { /* Block */ }
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Block,
-                            contentDescription = null,
-                            tint = AccentRed,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Text(
-                            text = "Block $contactName",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = AccentRed
-                        )
-                    }
-
-                    Divider(color = BorderHairline, thickness = 0.5.dp)
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { /* Report */ }
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Report,
-                            contentDescription = null,
-                            tint = AccentRed,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Text(
-                            text = "Report $contactName",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = AccentRed
-                        )
-                    }
+                    Text(
+                        text = "Block",
+                        fontSize = 16.sp,
+                        color = Color(0xFFEF4444)
+                    )
                 }
-
-                Spacer(modifier = Modifier.height(24.dp))
             }
         }
-    }
-
-    // Safety Number Comparison Dialog
-    if (showSafetyNumberDialog) {
-        AlertDialog(
-            onDismissRequest = { showSafetyNumberDialog = false },
-            containerColor = SurfaceDark,
-            title = {
-                Text(
-                    text = "Verify Safety Number",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextPrimary
-                )
-            },
-            text = {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = "To verify that messages and calls with $contactName are end-to-end encrypted, compare the number below with their device.",
-                        fontSize = 13.sp,
-                        color = TextSecondary,
-                        lineHeight = 18.sp
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(OledBlack)
-                            .border(1.dp, BorderHairline, RoundedCornerShape(12.dp))
-                            .padding(14.dp)
-                    ) {
-                        Text(
-                            text = "28401 98402 11093 48201\n55829 44810 39201 84920\n10394 59201 84920 18392",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                            color = AccentWhite,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showSafetyNumberDialog = false }) {
-                    Text("Done", color = AccentGreen, fontWeight = FontWeight.Bold)
-                }
-            }
-        )
     }
 }
 
 @Composable
-private fun QuickActionButton(
-    icon: ImageVector,
+fun ContactQuickActionPill(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
     label: String,
     onClick: () -> Unit
 ) {
+    val theme = ThemeManager.colors
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.clickable { onClick() }
     ) {
         Box(
             modifier = Modifier
-                .size(54.dp)
-                .clip(CircleShape)
-                .background(SurfaceDark)
-                .border(1.dp, BorderHairline, CircleShape),
+                .size(width = 64.dp, height = 32.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(theme.sfa)
+                .border(1.dp, theme.ol, RoundedCornerShape(16.dp)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = label,
-                tint = TextPrimary,
-                modifier = Modifier.size(24.dp)
+                tint = theme.acl,
+                modifier = Modifier.size(18.dp)
             )
         }
         Spacer(modifier = Modifier.height(6.dp))
         Text(
             text = label,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Medium,
-            color = TextSecondary
+            fontSize = 12.sp,
+            color = theme.s2
         )
     }
 }
 
 @Composable
-private fun ContactSettingRow(
-    icon: ImageVector,
+fun ContactToggleRow(
     title: String,
-    subtitle: String,
-    onClick: () -> Unit
+    checked: Boolean,
+    onToggle: () -> Unit
 ) {
+    val theme = ThemeManager.colors
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() }
-            .padding(16.dp),
+            .height(64.dp)
+            .clickable { onToggle() }
+            .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = TextSecondary,
-            modifier = Modifier.size(24.dp)
+        Text(
+            text = title,
+            fontSize = 16.sp,
+            color = theme.tx,
+            modifier = Modifier.weight(1f)
         )
-        Spacer(modifier = Modifier.width(16.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = TextPrimary
-            )
-            Text(
-                text = subtitle,
-                fontSize = 13.sp,
-                color = TextSecondary,
-                lineHeight = 17.sp
+        // Custom Prototype Toggle (.tg: 48x28dp, 14dp radius)
+        Box(
+            modifier = Modifier
+                .size(width = 48.dp, height = 28.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(if (checked) theme.ac else theme.ol)
+                .padding(3.dp),
+            contentAlignment = if (checked) Alignment.CenterEnd else Alignment.CenterStart
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(22.dp)
+                    .clip(CircleShape)
+                    .background(if (checked) theme.acx else theme.tx)
             )
         }
-        Icon(
-            imageVector = Icons.Default.ChevronRight,
-            contentDescription = null,
-            tint = TextSecondary,
-            modifier = Modifier.size(20.dp)
-        )
     }
 }
