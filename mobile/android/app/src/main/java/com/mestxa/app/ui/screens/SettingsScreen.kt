@@ -36,6 +36,7 @@ fun SettingsScreen(
 ) {
     val context = LocalContext.current
     val theme = ThemeManager.colors
+    val currentThemeMode by ThemeManager.themeMode.collectAsState()
 
     val displayName = remember { VaultManager.getDisplayName(context).ifBlank { "David Caleb" } }
     val userHandle = remember { VaultManager.getUsername(context).ifBlank { "davidcaleb" } }
@@ -141,10 +142,10 @@ fun SettingsScreen(
             item {
                 SettingRowItem(
                     title = "Theme",
-                    subtitle = when (ThemeManager.currentMode) {
-                        com.mestxa.app.ui.theme.ThemeMode.DARK -> "Dark"
-                        com.mestxa.app.ui.theme.ThemeMode.LIGHT -> "Light"
-                        com.mestxa.app.ui.theme.ThemeMode.SYSTEM -> "System default"
+                    subtitle = when (currentThemeMode) {
+                        "dark" -> "Dark"
+                        "light" -> "Light"
+                        else -> "System default"
                     },
                     onClick = onOpenTheme
                 )

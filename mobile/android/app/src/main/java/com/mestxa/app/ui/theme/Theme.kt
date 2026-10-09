@@ -17,7 +17,7 @@ import androidx.core.view.WindowCompat
 fun MestxaTheme(
     content: @Composable () -> Unit
 ) {
-    val themeColors by ThemeManager.colors.collectAsState()
+    val themeColors by ThemeManager.colorsFlow.collectAsState()
 
     val colorScheme = if (themeColors.isDark) {
         darkColorScheme(

@@ -48,6 +48,10 @@ data class AppThemeColors(
     val isDark: Boolean
 )
 
+enum class ThemeMode {
+    DARK, LIGHT, SYSTEM
+}
+
 val LocalAppTheme = staticCompositionLocalOf {
     ThemeManager.calculateColors("dark", 0)
 }
@@ -63,11 +67,21 @@ object ThemeManager {
     private val _themeMode = MutableStateFlow(prefs.getString(KEY_THEME_MODE, "dark") ?: "dark")
     val themeMode: StateFlow<String> = _themeMode.asStateFlow()
 
+    val currentMode: String get() = _themeMode.value
+
     private val _accentIndex = MutableStateFlow(prefs.getInt(KEY_ACCENT_IDX, 0))
     val accentIndex: StateFlow<Int> = _accentIndex.asStateFlow()
 
     private val _colors = MutableStateFlow(calculateColors(_themeMode.value, _accentIndex.value))
-    val colors: StateFlow<AppThemeColors> = _colors.asStateFlow()
+    val colorsFlow: StateFlow<AppThemeColors> = _colors.asStateFlow()
+
+    val colors: AppThemeColors
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalAppTheme.current
+
+    val currentColors: AppThemeColors
+        get() = _colors.value
 
     fun setThemeMode(mode: String) {
         _themeMode.value = mode
