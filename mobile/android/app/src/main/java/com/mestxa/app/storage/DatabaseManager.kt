@@ -62,13 +62,32 @@ data class CallRecordEntity(
     val durationSec: Int = 0
 )
 
+data class StatusRecordEntity(
+    val id: String,
+    val userName: String,
+    val userHandle: String,
+    val text: String,
+    val mediaUri: String = "",
+    val createdAtMs: Long = System.currentTimeMillis(),
+    val colorGradientIdx: Int = 0
+)
+
+data class ScheduledCallEntity(
+    val id: String,
+    val title: String,
+    val contactName: String,
+    val scheduledTime: String,
+    val isVideo: Boolean = false,
+    val createdAtMs: Long = System.currentTimeMillis()
+)
+
 class DatabaseManager private constructor(context: Context) :
     SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
 
     companion object {
         private const val TAG = "DatabaseManager"
         private const val DATABASE_NAME = "mestxa_local_vault.db"
-        private const val DATABASE_VERSION = 1
+        private const val DATABASE_VERSION = 2
 
         @Volatile
         private var instance: DatabaseManager? = null
@@ -153,15 +172,64 @@ class DatabaseManager private constructor(context: Context) :
             """.trimIndent()
         )
 
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS statuses (
+                id TEXT PRIMARY KEY,
+                user_name TEXT NOT NULL,
+                user_handle TEXT NOT NULL,
+                text TEXT NOT NULL,
+                media_uri TEXT,
+                created_at_ms INTEGER NOT NULL,
+                color_gradient_idx INTEGER DEFAULT 0
+            )
+            """.trimIndent()
+        )
+
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS scheduled_calls (
+                id TEXT PRIMARY KEY,
+                title TEXT NOT NULL,
+                contact_name TEXT NOT NULL,
+                scheduled_time TEXT NOT NULL,
+                is_video INTEGER NOT NULL,
+                created_at_ms INTEGER NOT NULL
+            )
+            """.trimIndent()
+        )
+
         Log.i(TAG, "Mestxa local vault tables initialized.")
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-        db.execSQL("DROP TABLE IF EXISTS messages")
-        db.execSQL("DROP TABLE IF EXISTS conversations")
-        db.execSQL("DROP TABLE IF EXISTS contacts")
-        db.execSQL("DROP TABLE IF EXISTS calls")
-        onCreate(db)
+        if (oldVersion < 2) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS statuses (
+                    id TEXT PRIMARY KEY,
+                    user_name TEXT NOT NULL,
+                    user_handle TEXT NOT NULL,
+                    text TEXT NOT NULL,
+                    media_uri TEXT,
+                    created_at_ms INTEGER NOT NULL,
+                    color_gradient_idx INTEGER DEFAULT 0
+                )
+                """.trimIndent()
+            )
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS scheduled_calls (
+                    id TEXT PRIMARY KEY,
+                    title TEXT NOT NULL,
+                    contact_name TEXT NOT NULL,
+                    scheduled_time TEXT NOT NULL,
+                    is_video INTEGER NOT NULL,
+                    created_at_ms INTEGER NOT NULL
+                )
+                """.trimIndent()
+            )
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -563,5 +631,101 @@ class DatabaseManager private constructor(context: Context) :
             put("duration_sec", call.durationSec)
         }
         db.insertWithOnConflict("calls", null, cv, SQLiteDatabase.CONFLICT_REPLACE)
+    }
+
+    fun updateMessageCardData(messageId: String, newCardData: String) {
+        val db = writableDatabase
+        val cv = ContentValues().apply { put("card_data", newCardData) }
+        db.update("messages", cv, "id = ?", arrayOf(messageId))
+    }
+
+    fun updateCardData(messageId: String, newCardData: String) {
+        updateMessageCardData(messageId, newCardData)
+    }
+
+    // -------------------------------------------------------------------------
+    // Statuses
+    // -------------------------------------------------------------------------
+
+    fun getStatuses(): List<StatusRecordEntity> {
+        val list = mutableListOf<StatusRecordEntity>()
+        val db = readableDatabase
+        val cursor = db.query("statuses", null, null, null, null, null, "created_at_ms DESC")
+        cursor.use {
+            while (it.moveToNext()) {
+                list.add(
+                    StatusRecordEntity(
+                        id = it.getString(it.getColumnIndexOrThrow("id")),
+                        userName = it.getString(it.getColumnIndexOrThrow("user_name")),
+                        userHandle = it.getString(it.getColumnIndexOrThrow("user_handle")),
+                        text = it.getString(it.getColumnIndexOrThrow("text")),
+                        mediaUri = it.getString(it.getColumnIndexOrThrow("media_uri")) ?: "",
+                        createdAtMs = it.getLong(it.getColumnIndexOrThrow("created_at_ms")),
+                        colorGradientIdx = it.getInt(it.getColumnIndexOrThrow("color_gradient_idx"))
+                    )
+                )
+            }
+        }
+        return list
+    }
+
+    fun saveStatus(status: StatusRecordEntity) {
+        val db = writableDatabase
+        val cv = ContentValues().apply {
+            put("id", status.id)
+            put("user_name", status.userName)
+            put("user_handle", status.userHandle)
+            put("text", status.text)
+            put("media_uri", status.mediaUri)
+            put("created_at_ms", status.createdAtMs)
+            put("color_gradient_idx", status.colorGradientIdx)
+        }
+        db.insertWithOnConflict("statuses", null, cv, SQLiteDatabase.CONFLICT_REPLACE)
+    }
+
+    fun deleteStatus(id: String) {
+        writableDatabase.delete("statuses", "id = ?", arrayOf(id))
+    }
+
+    // -------------------------------------------------------------------------
+    // Scheduled Calls
+    // -------------------------------------------------------------------------
+
+    fun getScheduledCalls(): List<ScheduledCallEntity> {
+        val list = mutableListOf<ScheduledCallEntity>()
+        val db = readableDatabase
+        val cursor = db.query("scheduled_calls", null, null, null, null, null, "created_at_ms DESC")
+        cursor.use {
+            while (it.moveToNext()) {
+                list.add(
+                    ScheduledCallEntity(
+                        id = it.getString(it.getColumnIndexOrThrow("id")),
+                        title = it.getString(it.getColumnIndexOrThrow("title")),
+                        contactName = it.getString(it.getColumnIndexOrThrow("contact_name")),
+                        scheduledTime = it.getString(it.getColumnIndexOrThrow("scheduled_time")),
+                        isVideo = it.getInt(it.getColumnIndexOrThrow("is_video")) == 1,
+                        createdAtMs = it.getLong(it.getColumnIndexOrThrow("created_at_ms"))
+                    )
+                )
+            }
+        }
+        return list
+    }
+
+    fun saveScheduledCall(call: ScheduledCallEntity) {
+        val db = writableDatabase
+        val cv = ContentValues().apply {
+            put("id", call.id)
+            put("title", call.title)
+            put("contact_name", call.contactName)
+            put("scheduled_time", call.scheduledTime)
+            put("is_video", if (call.isVideo) 1 else 0)
+            put("created_at_ms", call.createdAtMs)
+        }
+        db.insertWithOnConflict("scheduled_calls", null, cv, SQLiteDatabase.CONFLICT_REPLACE)
+    }
+
+    fun deleteScheduledCall(id: String) {
+        writableDatabase.delete("scheduled_calls", "id = ?", arrayOf(id))
     }
 }

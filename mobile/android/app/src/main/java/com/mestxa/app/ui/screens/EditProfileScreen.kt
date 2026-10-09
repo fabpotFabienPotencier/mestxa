@@ -30,11 +30,11 @@ fun EditProfileScreen(
     val context = LocalContext.current
     val theme = ThemeManager.colors
 
-    val currentName = remember { VaultManager.getDisplayName(context).ifBlank { "David Caleb" } }
-    val currentHandle = remember { VaultManager.getUsername(context).ifBlank { "davidcaleb" } }
+    val currentName = remember { VaultManager.getDisplayName(context).ifBlank { "User" } }
+    val currentHandle = remember { VaultManager.getUsername(context).ifBlank { "user" } }
 
     var name by remember { mutableStateOf(currentName) }
-    var about by remember { mutableStateOf("Building something new") }
+    var about by remember { mutableStateOf("Available") }
     var username by remember { mutableStateOf(currentHandle) }
 
     Scaffold(

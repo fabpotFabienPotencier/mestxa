@@ -26,8 +26,55 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import com.mestxa.app.storage.VaultManager
 import com.mestxa.app.ui.theme.ThemeManager
+
+@Composable
+fun PrototypeQrCanvas(
+    seed: String,
+    tintColor: Color,
+    modifier: Modifier = Modifier
+) {
+    Canvas(modifier = modifier) {
+        val n = 25
+        val cellSize = size.width / n
+        var x = 0L
+        for (ch in seed) {
+            x = (x * 31 + ch.code) and 0xFFFFFFFFL
+        }
+        val randomState = LongArray(1) { x }
+        fun nextRandom(): Double {
+            randomState[0] = ((randomState[0] * 1664525L + 1013904223L) and 0xFFFFFFFFL)
+            return randomState[0].toDouble() / 4294967296.0
+        }
+
+        for (i in 0 until n) {
+            for (j in 0 until n) {
+                val isCornerFinder = (i < 7 && j < 7) || (i < 7 && j >= n - 7) || (i >= n - 7 && j < 7)
+                val on = if (isCornerFinder) {
+                    val a = if (i < 7) i else i - (n - 7)
+                    val b = if (j < 7) j else j - (n - 7)
+                    a == 0 || a == 6 || b == 0 || b == 6 || (a in 2..4 && b in 2..4)
+                } else {
+                    nextRandom() > 0.5
+                }
+                val inCenter = i in 10..14 && j in 10..14
+                if (on && !inCenter) {
+                    drawRoundRect(
+                        color = tintColor,
+                        topLeft = Offset(j * cellSize, i * cellSize),
+                        size = Size(cellSize * 0.92f, cellSize * 0.92f),
+                        cornerRadius = CornerRadius(cellSize * 0.25f, cellSize * 0.25f)
+                    )
+                }
+            }
+        }
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,8 +84,8 @@ fun QrProfileScreen(
     val context = LocalContext.current
     val theme = ThemeManager.colors
 
-    val displayName = remember { VaultManager.getDisplayName(context).ifBlank { "David Caleb" } }
-    val userHandle = remember { VaultManager.getUsername(context).ifBlank { "davidcaleb" } }
+    val displayName = remember { VaultManager.getDisplayName(context).ifBlank { "User" } }
+    val userHandle = remember { VaultManager.getUsername(context).ifBlank { "user" } }
 
     var selectedBackgroundIdx by remember { mutableIntStateOf(0) }
 
@@ -103,16 +150,15 @@ fun QrProfileScreen(
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            // QR Code Vector
+                            // QR Code Canvas
                             Box(
                                 modifier = Modifier
                                     .size(192.dp),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.QrCode,
-                                    contentDescription = "QR Code",
-                                    tint = Color.Black,
+                                PrototypeQrCanvas(
+                                    seed = userHandle,
+                                    tintColor = Color.Black,
                                     modifier = Modifier.fillMaxSize()
                                 )
 

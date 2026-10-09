@@ -17,34 +17,50 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mestxa.app.storage.DatabaseManager
+import com.mestxa.app.storage.StatusRecordEntity
 import com.mestxa.app.ui.theme.*
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun StatusViewerScreen(
     contactName: String,
     onClose: () -> Unit
 ) {
-    var currentSegment by remember { mutableIntStateOf(0) }
-    val totalSegments = 3
-    var replyText by remember { mutableStateOf("") }
-
-    val gradient = remember(contactName) {
-        if (contactName == "Bella") {
-            Brush.verticalGradient(listOf(Color(0xFFF4A261), Color(0xFF5A2D0C), Color(0xFF000000)))
-        } else {
-            Brush.verticalGradient(listOf(Color(0xFF2A9D8F), Color(0xFF0B3D3A), Color(0xFF000000)))
+    val context = LocalContext.current
+    val db = remember { DatabaseManager.getInstance(context) }
+    val statuses = remember(contactName) {
+        val all = db.getStatuses()
+        val filtered = all.filter {
+            it.userName.equals(contactName, ignoreCase = true) ||
+            it.userHandle.equals(contactName, ignoreCase = true)
         }
+        if (filtered.isNotEmpty()) filtered else all
     }
 
-    val captions = listOf(
-        "Big things start small",
-        "Meeting went well today",
-        "Weekend plans loading"
-    )
+    var currentSegment by remember { mutableIntStateOf(0) }
+    val totalSegments = if (statuses.isNotEmpty()) statuses.size else 1
+    var replyText by remember { mutableStateOf("") }
+
+    val currentStatus: StatusRecordEntity? = statuses.getOrNull(currentSegment)
+
+    val gradient = remember(currentStatus) {
+        val idx = currentStatus?.colorGradientIdx ?: 0
+        when (idx % 5) {
+            0 -> Brush.verticalGradient(listOf(Color(0xFFF4A261), Color(0xFF5A2D0C), Color(0xFF000000)))
+            1 -> Brush.verticalGradient(listOf(Color(0xFFE9C46A), Color(0xFF8A5A00), Color(0xFF000000)))
+            2 -> Brush.verticalGradient(listOf(Color(0xFF2A9D8F), Color(0xFF0B3D3A), Color(0xFF000000)))
+            3 -> Brush.verticalGradient(listOf(Color(0xFFE76F51), Color(0xFF6B1F0F), Color(0xFF000000)))
+            else -> Brush.verticalGradient(listOf(Color(0xFF8ECAE6), Color(0xFF1D4E6B), Color(0xFF000000)))
+        }
+    }
 
     // Segment timer progress animation (5 seconds per segment)
     val progress = remember { Animatable(0f) }
@@ -163,8 +179,13 @@ fun StatusViewerScreen(
                             fontWeight = FontWeight.SemiBold,
                             color = AccentWhite
                         )
+                        val formattedTime = remember(currentStatus) {
+                            if (currentStatus != null) {
+                                SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date(currentStatus.createdAtMs))
+                            } else "Just now"
+                        }
                         Text(
-                            text = "Today, 9:40 AM",
+                            text = "Today, $formattedTime",
                             fontSize = 12.sp,
                             color = Color.White.copy(alpha = 0.7f)
                         )
@@ -182,7 +203,7 @@ fun StatusViewerScreen(
 
             // Center Caption
             Text(
-                text = captions[currentSegment.coerceIn(0, captions.size - 1)],
+                text = currentStatus?.text ?: "No active status",
                 fontSize = 24.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = AccentWhite,

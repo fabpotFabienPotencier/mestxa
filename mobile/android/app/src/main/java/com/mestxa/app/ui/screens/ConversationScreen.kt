@@ -653,14 +653,10 @@ fun ConversationScreen(
                     actions.take(4).forEach { (title, icon, type) ->
                         AttachmentPillButton(title = title, icon = icon) {
                             showAttachmentSheet = false
-                            if (type == "poll") {
-                                viewModel.sendMessage(
-                                    text = "",
-                                    cardType = "poll",
-                                    cardData = "{\"question\":\"Lunch today?\",\"options\":[\"Jollof rice\",\"Pizza\"],\"votes\":[0,0]}"
-                                )
-                            } else {
-                                viewModel.sendMessage(text = "", cardType = type)
+                            when (type) {
+                                "loc" -> viewModel.sendMessage(text = "", cardType = "loc", cardData = "Victoria Island, Lagos")
+                                "doc" -> viewModel.sendMessage(text = "", cardType = "doc", cardData = "{\"title\":\"Document.pdf\",\"size\":\"1.2 MB\"}")
+                                else -> viewModel.sendMessage(text = "", cardType = type)
                             }
                         }
                     }
@@ -677,7 +673,29 @@ fun ConversationScreen(
                     actions.drop(4).forEach { (title, icon, type) ->
                         AttachmentPillButton(title = title, icon = icon) {
                             showAttachmentSheet = false
-                            viewModel.sendMessage(text = "", cardType = type)
+                            when (type) {
+                                "poll" -> viewModel.sendMessage(
+                                    text = "",
+                                    cardType = "poll",
+                                    cardData = "{\"question\":\"Team sync tomorrow?\",\"options\":[\"Yes, morning\",\"Afternoon\"],\"votes\":[0,0]}"
+                                )
+                                "evt" -> viewModel.sendMessage(
+                                    text = "",
+                                    cardType = "evt",
+                                    cardData = "{\"title\":\"Product Review\",\"time\":\"Tomorrow, 10:00 AM\"}"
+                                )
+                                "con" -> viewModel.sendMessage(
+                                    text = "",
+                                    cardType = "con",
+                                    cardData = "{\"name\":\"$contactName\",\"number\":\"Mestxa Verified\"}"
+                                )
+                                "vn" -> viewModel.sendMessage(
+                                    text = "",
+                                    cardType = "vn",
+                                    cardData = "{\"duration\":\"0:24\"}"
+                                )
+                                else -> viewModel.sendMessage(text = "", cardType = type)
+                            }
                         }
                     }
                 }
@@ -865,7 +883,7 @@ fun MessageBubbleItem(
                                     }
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(
-                                        text = "Current location",
+                                        text = msg.cardData.ifBlank { "Shared location" },
                                         fontWeight = FontWeight.Medium,
                                         fontSize = 14.sp,
                                         color = textColor
@@ -873,6 +891,19 @@ fun MessageBubbleItem(
                                 }
                             }
                             "con" -> {
+                                val (cName, cSub) = remember(msg.cardData) {
+                                    try {
+                                        val json = org.json.JSONObject(msg.cardData)
+                                        json.optString("name", "Contact") to json.optString("number", "Mobile")
+                                    } catch (e: Exception) {
+                                        if (msg.cardData.contains("•")) {
+                                            val parts = msg.cardData.split("•")
+                                            parts[0].trim() to (parts.getOrNull(1)?.trim() ?: "Contact")
+                                        } else {
+                                            (msg.cardData.ifBlank { "Contact" }) to "Contact"
+                                        }
+                                    }
+                                }
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -887,7 +918,7 @@ fun MessageBubbleItem(
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Text(
-                                            text = "CH",
+                                            text = cName.take(2).uppercase(),
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 14.sp,
                                             color = textColor
@@ -896,13 +927,13 @@ fun MessageBubbleItem(
                                     Spacer(modifier = Modifier.width(10.dp))
                                     Column {
                                         Text(
-                                            text = "Chidi",
+                                            text = cName,
                                             fontWeight = FontWeight.Medium,
                                             fontSize = 14.sp,
                                             color = textColor
                                         )
                                         Text(
-                                            text = "Contact",
+                                            text = cSub,
                                             fontSize = 12.sp,
                                             color = textColor.copy(alpha = 0.6f)
                                         )
@@ -910,6 +941,19 @@ fun MessageBubbleItem(
                                 }
                             }
                             "evt" -> {
+                                val (eTitle, eTime) = remember(msg.cardData) {
+                                    try {
+                                        val json = org.json.JSONObject(msg.cardData)
+                                        json.optString("title", "Event") to json.optString("time", "Scheduled")
+                                    } catch (e: Exception) {
+                                        if (msg.cardData.contains("|")) {
+                                            val parts = msg.cardData.split("|")
+                                            parts[0].trim() to (parts.getOrNull(1)?.trim() ?: "Scheduled")
+                                        } else {
+                                            (msg.cardData.ifBlank { "Event" }) to "Scheduled"
+                                        }
+                                    }
+                                }
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -933,13 +977,13 @@ fun MessageBubbleItem(
                                     Spacer(modifier = Modifier.width(10.dp))
                                     Column {
                                         Text(
-                                            text = "Team meeting",
+                                            text = eTitle,
                                             fontWeight = FontWeight.Medium,
                                             fontSize = 14.sp,
                                             color = textColor
                                         )
                                         Text(
-                                            text = "Fri, 10:00 AM",
+                                            text = eTime,
                                             fontSize = 12.sp,
                                             color = textColor.copy(alpha = 0.6f)
                                         )
@@ -972,7 +1016,16 @@ fun MessageBubbleItem(
                                         verticalAlignment = Alignment.CenterVertically,
                                         modifier = Modifier.weight(1f)
                                     ) {
-                                        val waveformBars = listOf(6, 13, 8, 18, 11, 20, 15, 9, 22, 14, 8, 17, 10, 19, 12, 7, 14, 8)
+                                        val waveformBars = remember(msg.id) {
+                                            val seed = (msg.id.hashCode() and 0x7fffffff)
+                                            val list = mutableListOf<Int>()
+                                            var curr = seed
+                                            for (k in 0 until 18) {
+                                                curr = (curr * 1103515245 + 12345) and 0x7fffffff
+                                                list.add(6 + (curr % 18))
+                                            }
+                                            list
+                                        }
                                         waveformBars.forEach { h ->
                                             Box(
                                                 modifier = Modifier
@@ -986,8 +1039,16 @@ fun MessageBubbleItem(
                                         }
                                     }
                                     Spacer(modifier = Modifier.width(8.dp))
+                                    val audioDuration = remember(msg.cardData) {
+                                        try {
+                                            val json = JSONObject(msg.cardData)
+                                            json.optString("duration", "0:12")
+                                        } catch (e: Exception) {
+                                            "0:12"
+                                        }
+                                    }
                                     Text(
-                                        text = "0:07",
+                                        text = audioDuration,
                                         fontSize = 12.sp,
                                         color = textColor.copy(alpha = 0.6f)
                                     )

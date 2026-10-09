@@ -17,16 +17,23 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mestxa.app.storage.DatabaseManager
+import com.mestxa.app.storage.StatusRecordEntity
+import com.mestxa.app.storage.VaultManager
 import com.mestxa.app.ui.theme.*
+import java.util.UUID
 
 @Composable
 fun AddStatusScreen(
     onBack: () -> Unit,
     onStatusPosted: () -> Unit
 ) {
+    val context = LocalContext.current
+    val db = remember { DatabaseManager.getInstance(context) }
     var statusText by remember { mutableStateOf("") }
 
     Scaffold(
@@ -95,7 +102,19 @@ fun AddStatusScreen(
 
                     IconButton(
                         onClick = {
-                            if (statusText.isNotBlank()) {
+                            val cleanText = statusText.trim()
+                            if (cleanText.isNotBlank()) {
+                                val myName = VaultManager.getDisplayName(context).ifBlank { "Me" }
+                                val myHandle = VaultManager.getUsername(context).ifBlank { "me" }
+                                db.saveStatus(
+                                    StatusRecordEntity(
+                                        id = UUID.randomUUID().toString(),
+                                        userName = myName,
+                                        userHandle = myHandle,
+                                        text = cleanText,
+                                        colorGradientIdx = (cleanText.hashCode() and 0x7fffffff) % 5
+                                    )
+                                )
                                 onStatusPosted()
                             }
                         },

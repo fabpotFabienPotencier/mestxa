@@ -20,6 +20,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mestxa.app.storage.DatabaseManager
 import com.mestxa.app.ui.theme.ThemeManager
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -32,6 +33,13 @@ fun ContactInfoScreen(
 ) {
     val context = LocalContext.current
     val theme = ThemeManager.colors
+    val db = remember { DatabaseManager.getInstance(context) }
+    val contact = remember(contactName) {
+        db.getContacts().find {
+            it.name.equals(contactName, ignoreCase = true) ||
+            it.username.equals(contactName, ignoreCase = true)
+        }
+    }
 
     var notificationsEnabled by remember { mutableStateOf(true) }
     var disappearingEnabled by remember { mutableStateOf(false) }
@@ -94,10 +102,14 @@ fun ContactInfoScreen(
 
                     Spacer(modifier = Modifier.height(4.dp))
 
+                    val subtitle = if (contact != null) {
+                        if (contact.number.isNotBlank()) contact.number else "@${contact.username}"
+                    } else "Mestxa User"
+
                     Text(
-                        text = "online",
+                        text = subtitle,
                         fontSize = 14.sp,
-                        color = theme.acl,
+                        color = theme.s2,
                         fontWeight = FontWeight.Medium
                     )
                 }

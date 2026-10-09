@@ -34,6 +34,8 @@ import com.mestxa.app.storage.CallRecordEntity
 import com.mestxa.app.storage.ContactRecord
 import com.mestxa.app.storage.ConversationRecord
 import com.mestxa.app.storage.DatabaseManager
+import com.mestxa.app.storage.ScheduledCallEntity
+import com.mestxa.app.storage.StatusRecordEntity
 import com.mestxa.app.ui.theme.ThemeManager
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -76,12 +78,16 @@ fun ChatsScreen(
     var archivedConversations by remember { mutableStateOf<List<ConversationRecord>>(emptyList()) }
     var calls by remember { mutableStateOf<List<CallRecordEntity>>(emptyList()) }
     var contacts by remember { mutableStateOf<List<ContactRecord>>(emptyList()) }
+    var statuses by remember { mutableStateOf<List<StatusRecordEntity>>(emptyList()) }
+    var scheduledCalls by remember { mutableStateOf<List<ScheduledCallEntity>>(emptyList()) }
 
     fun refreshData() {
         conversations = db.getConversations(includeArchived = false)
         archivedConversations = db.getArchivedConversations()
         calls = db.getCalls()
         contacts = db.getContacts()
+        statuses = db.getStatuses()
+        scheduledCalls = db.getScheduledCalls()
     }
 
     LaunchedEffect(Unit) {
@@ -527,6 +533,46 @@ fun ChatsScreen(
                                         }
                                     }
                                 }
+
+                                items(statuses) { status ->
+                                    val gradient = AvatarGradients[(status.colorGradientIdx).coerceIn(0, AvatarGradients.size - 1)]
+                                    Box(
+                                        modifier = Modifier
+                                            .size(width = 76.dp, height = 135.dp)
+                                            .clip(RoundedCornerShape(20.dp))
+                                            .background(gradient)
+                                            .clickable { onViewStatus(status.userName) }
+                                            .padding(8.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(44.dp)
+                                                    .clip(CircleShape)
+                                                    .border(2.dp, Color.White, CircleShape)
+                                                    .background(theme.sf),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    text = status.userName.take(1).uppercase(),
+                                                    fontSize = 15.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = Color.White
+                                                )
+                                            }
+                                            Spacer(modifier = Modifier.height(14.dp))
+                                            Text(
+                                                text = status.userName,
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = Color.White,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
 
@@ -560,14 +606,46 @@ fun ChatsScreen(
                             }
                         }
 
-                        item {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 32.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text("No updates yet", color = theme.s2, fontSize = 15.sp)
+                        if (statuses.isEmpty()) {
+                            item {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 32.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text("No updates yet", color = theme.s2, fontSize = 15.sp)
+                                }
+                            }
+                        } else {
+                            items(statuses) { status ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { onViewStatus(status.userName) }
+                                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(48.dp)
+                                            .clip(CircleShape)
+                                            .background(AvatarGradients[(status.colorGradientIdx).coerceIn(0, AvatarGradients.size - 1)]),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = status.userName.take(1).uppercase(),
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 16.sp,
+                                            color = Color.White
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.width(14.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(status.userName, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = theme.tx)
+                                        Text(status.text, fontSize = 14.sp, color = theme.s2, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    }
+                                }
                             }
                         }
                     }
@@ -682,6 +760,41 @@ fun ChatsScreen(
                                     label = "Keypad",
                                     onClick = { onOpenKeypad() }
                                 )
+                            }
+                        }
+
+                        if (scheduledCalls.isNotEmpty()) {
+                            item {
+                                Text(
+                                    text = "Scheduled",
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = theme.tx,
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                                )
+                            }
+                            items(scheduledCalls) { sc ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = if (sc.isVideo) Icons.Default.Videocam else Icons.Default.Phone,
+                                        contentDescription = null,
+                                        tint = theme.acl,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(14.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(sc.title, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = theme.tx)
+                                        Text("${sc.contactName} • ${sc.scheduledTime}", fontSize = 13.sp, color = theme.s2)
+                                    }
+                                    IconButton(onClick = { onStartCall(sc.contactName) }) {
+                                        Icon(Icons.Default.Phone, contentDescription = "Call", tint = theme.acl)
+                                    }
+                                }
                             }
                         }
 

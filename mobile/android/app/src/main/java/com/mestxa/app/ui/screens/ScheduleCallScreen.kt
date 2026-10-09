@@ -22,7 +22,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mestxa.app.storage.DatabaseManager
+import com.mestxa.app.storage.ScheduledCallEntity
 import com.mestxa.app.ui.theme.ThemeManager
+import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -172,6 +174,15 @@ fun ScheduleCallScreen(
                     if (title.isBlank() || selectedContact.isBlank()) {
                         Toast.makeText(context, "Fill in all fields", Toast.LENGTH_SHORT).show()
                     } else {
+                        db.saveScheduledCall(
+                            ScheduledCallEntity(
+                                id = UUID.randomUUID().toString(),
+                                title = title.trim(),
+                                contactName = selectedContact.trim(),
+                                scheduledTime = scheduledDate.trim(),
+                                isVideo = isVideo
+                            )
+                        )
                         Toast.makeText(context, "Call scheduled for $selectedContact", Toast.LENGTH_SHORT).show()
                         onScheduled()
                         onBack()
