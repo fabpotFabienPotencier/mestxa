@@ -169,14 +169,6 @@ fun PickUsernameScreen(
                         color = TextSecondary
                     )
                 },
-                prefix = {
-                    Text(
-                        text = "@",
-                        fontSize = 22.sp,
-                        color = TextPrimary,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                },
                 trailingIcon = {
                     if (isChecking) {
                         CircularProgressIndicator(
@@ -233,7 +225,7 @@ fun PickUsernameScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                text = "People can search and message you securely with this handle. It is linked to your post-quantum cryptographic identity.",
+                text = "People can search and message you with this handle.",
                 fontSize = 14.sp,
                 lineHeight = 20.sp,
                 color = TextSecondary

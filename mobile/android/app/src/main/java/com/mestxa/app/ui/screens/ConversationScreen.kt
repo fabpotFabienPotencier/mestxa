@@ -52,10 +52,13 @@ data class MessageBubble(
 @Composable
 fun ConversationScreen(
     contactName: String,
+    conversationId: String = contactName,
     onBack: () -> Unit,
     onStartCall: (String) -> Unit,
     onOpenContactInfo: (String) -> Unit = {},
-    viewModel: ConversationViewModel = remember(contactName) { ConversationViewModel(contactName) }
+    viewModel: ConversationViewModel = remember(conversationId) { 
+        ConversationViewModel(contactName = contactName, conversationId = conversationId) 
+    }
 ) {
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current

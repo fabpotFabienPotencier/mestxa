@@ -218,8 +218,28 @@ class ConversationViewModel(
             targetKey = VaultManager.getRecipientKey(context, conversationId)
                 ?: VaultManager.getRecipientKey(context, contactName)
         }
+        if (targetKey == null && conversationId.length == 64) {
+            targetKey = try { MestxaBridge.hexToBytes(conversationId) } catch (_: Exception) { null }
+        }
         if (targetKey == null) {
-            targetKey = myIdentityKey // Fallback to avoid crash if peer not yet resolved
+            runBlocking(Dispatchers.IO) {
+                try {
+                    val bundle = apiClient.fetchPrekeys(conversationId)
+                        ?: apiClient.fetchPrekeys(contactName)
+                    if (bundle != null) {
+                        targetKey = bundle.identityKey
+                        recipientKey = targetKey
+                        VaultManager.saveRecipientKey(conversationId, bundle.identityKey)
+                        VaultManager.saveRecipientKey(contactName, bundle.identityKey)
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Prekey resolution failed: ${e.message}")
+                }
+            }
+        }
+        if (targetKey == null) {
+            Log.e(TAG, "Cannot send message: Recipient public key could not be resolved for $conversationId / $contactName")
+            return
         }
 
         // Build payload

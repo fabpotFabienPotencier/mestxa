@@ -75,26 +75,18 @@ fun ActiveCallScreen(
 
             Text(
                 text = contactName,
-                style = MaterialTheme.typography.headlineLarge,
-                fontSize = 28.sp
+                fontSize = 26.sp,
+                fontWeight = FontWeight.Bold,
+                color = AccentWhite
             )
 
             Spacer(modifier = Modifier.height(6.dp))
 
+            val statusText = if (callSeconds == 0) "Calling…" else "$minutes:$seconds"
             Text(
-                text = "48 kHz Full-Band Opus • SFrame E2EE",
-                style = MaterialTheme.typography.labelSmall,
-                color = AccentGreen,
-                fontWeight = FontWeight.SemiBold
-            )
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            Text(
-                text = "$minutes:$seconds",
-                style = MaterialTheme.typography.headlineSmall,
+                text = statusText,
                 color = TextSecondary,
-                fontSize = 18.sp
+                fontSize = 16.sp
             )
         }
 

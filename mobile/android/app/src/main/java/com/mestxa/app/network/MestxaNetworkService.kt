@@ -14,7 +14,15 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 import android.content.Context
 import com.mestxa.app.MestxaApplication
+import com.mestxa.app.storage.ConversationRecord
+import com.mestxa.app.storage.DatabaseManager
+import com.mestxa.app.storage.MessageRecord
 import com.mestxa.app.storage.VaultManager
+import com.mestxa.app.webrtc.WebRtcCallManager
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import org.json.JSONObject
 
 class MestxaNetworkService(
     private val serverBaseUrl: String = "wss://api.mestxa.com/v1/gateway",
@@ -118,18 +126,21 @@ class MestxaNetworkService(
                 if (wirePayload != null) {
                     when (wirePayload) {
                         is WireFramePayload.EnvelopePayload -> {
-                            val env = wirePayload.envelope
-                            scope.launch {
-                                _incomingMessages.emit(env)
-                                // Send delivery ACK back to trigger immediate server purge
-                                sendDeliveryAck(env.messageId, env.senderIdentityKey)
-                            }
+                            handleIncomingEnvelope(wirePayload.envelope)
                         }
                         is WireFramePayload.AckPayload -> {
                             scope.launch { _deliveryAcks.emit(wirePayload.ack) }
                         }
                         is WireFramePayload.CallSignalPayload -> {
-                            scope.launch { _incomingCallSignals.emit(wirePayload.callSignal) }
+                            scope.launch {
+                                _incomingCallSignals.emit(wirePayload.callSignal)
+                                try {
+                                    WebRtcCallManager.getInstance(MestxaApplication.instance)
+                                        .handleIncomingSignal(wirePayload.callSignal)
+                                } catch (e: Exception) {
+                                    Log.w(TAG, "Call signal dispatch warning: ${e.message}")
+                                }
+                            }
                         }
                         is WireFramePayload.PingPayload -> {
                             val pongBytes = WireFrameSerializer.encode(WireFramePayload.PongPayload(wirePayload.timestampMs))
@@ -190,6 +201,95 @@ class MestxaNetworkService(
     fun sendCallSignal(signal: CallSignal): Boolean {
         val wireBytes = WireFrameSerializer.encode(WireFramePayload.CallSignalPayload(signal))
         return webSocket?.send(wireBytes.toByteString()) ?: false
+    }
+
+    /**
+     * Decrypt and persist incoming envelope to SQLite database, then notify UI
+     */
+     private fun handleIncomingEnvelope(env: MessageEnvelope) {
+        scope.launch {
+            try {
+                val ctx = MestxaApplication.instance
+                val db = DatabaseManager.getInstance(ctx)
+                val senderHex = MestxaBridge.bytesToHex(env.senderIdentityKey).lowercase()
+
+                // Decrypt PQXDH / Kyber payload
+                val decryptedBytes = MestxaBridge.decrypt(
+                    senderIdentityKey = env.senderIdentityKey,
+                    payload = com.mestxa.app.engine.EncryptedPayload(
+                        ephemeralKey = env.ephemeralDhKey,
+                        kyberCiphertext = env.kyberCiphertext,
+                        ciphertext = env.ciphertext,
+                        nonce = env.iv
+                    )
+                )
+                val rawText = String(decryptedBytes, Charsets.UTF_8)
+                val timeFormat = SimpleDateFormat("h:mm a", Locale.getDefault())
+                val timeStr = timeFormat.format(Date(env.timestampMs))
+
+                var msgText = rawText
+                var cardType = "text"
+                var cardData = ""
+                var quote = ""
+
+                try {
+                    if (rawText.startsWith("{") && rawText.endsWith("}")) {
+                        val json = JSONObject(rawText)
+                        msgText = json.optString("text", rawText)
+                        cardType = json.optString("cardType", "text")
+                        cardData = json.optString("cardData", "")
+                        quote = json.optString("quote", "")
+                    }
+                } catch (_: Exception) {}
+
+                // Save message in local vault
+                val record = MessageRecord(
+                    id = env.messageId,
+                    conversationId = senderHex,
+                    senderKeyHex = senderHex,
+                    isFromMe = false,
+                    content = msgText,
+                    timestamp = timeStr,
+                    createdAtMs = env.timestampMs,
+                    isDelivered = true,
+                    isRead = false,
+                    cardType = cardType,
+                    cardData = cardData,
+                    quoteReply = quote
+                )
+                db.saveMessage(record)
+
+                // Update / create conversation
+                val existing = db.getConversation(senderHex)
+                val contact = db.getContact(senderHex)
+                val displayName = contact?.name ?: existing?.contactName ?: ("MX-" + senderHex.take(8).uppercase())
+
+                val updatedConv = existing?.copy(
+                    lastMessage = if (cardType == "text") msgText else cardType.uppercase(),
+                    timestamp = timeStr,
+                    updatedAtMs = env.timestampMs,
+                    unreadCount = (existing.unreadCount + 1)
+                ) ?: ConversationRecord(
+                    id = senderHex,
+                    contactName = displayName,
+                    contactPublicKeyHex = senderHex,
+                    lastMessage = if (cardType == "text") msgText else cardType.uppercase(),
+                    timestamp = timeStr,
+                    updatedAtMs = env.timestampMs,
+                    unreadCount = 1
+                )
+                db.saveConversation(updatedConv)
+
+                // Transmit delivery ACK to relay
+                sendDeliveryAck(env.messageId, env.senderIdentityKey)
+
+                // Notify active screen
+                _incomingMessages.emit(env)
+                Log.i(TAG, "Decrypted & stored incoming message ${env.messageId} from $senderHex")
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed handling incoming envelope: ${e.message}")
+            }
+        }
     }
 
     fun disconnect() {

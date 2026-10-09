@@ -357,6 +357,23 @@ fun ChatsScreen(
                                     )
                                 }
                             }
+
+                            // Plus Pill matching prototype .pl.pc
+                            Box(
+                                modifier = Modifier
+                                    .size(30.dp)
+                                    .clip(CircleShape)
+                                    .border(1.dp, theme.ol, CircleShape)
+                                    .clickable { Toast.makeText(context, "Coming in the full design", Toast.LENGTH_SHORT).show() },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = "Add filter",
+                                    tint = theme.s2,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
                         }
 
                         // Filter by tab pills and search query

@@ -14,7 +14,7 @@ class CallViewModel(
     application: Application
 ) : AndroidViewModel(application) {
 
-    private val callManager = WebRtcCallManager(application.applicationContext)
+    private val callManager = WebRtcCallManager.getInstance(application.applicationContext)
 
     private val _callSeconds = MutableStateFlow(0)
     val callSeconds: StateFlow<Int> = _callSeconds.asStateFlow()

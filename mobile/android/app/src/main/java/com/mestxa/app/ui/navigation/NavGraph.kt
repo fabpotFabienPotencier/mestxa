@@ -20,8 +20,12 @@ sealed class Screen(val route: String) {
     object LinkDevice : Screen("link_device")
     object Pin : Screen("pin")
     object Chats : Screen("chats")
-    object Conversation : Screen("conversation/{contactName}") {
-        fun createRoute(contactName: String) = "conversation/$contactName"
+    object Conversation : Screen("conversation/{conversationId}/{contactName}") {
+        fun createRoute(conversationId: String, contactName: String): String {
+            val safeId = java.net.URLEncoder.encode(conversationId, "UTF-8")
+            val safeName = java.net.URLEncoder.encode(contactName, "UTF-8")
+            return "conversation/$safeId/$safeName"
+        }
     }
     object ActiveCall : Screen("active_call/{contactName}") {
         fun createRoute(contactName: String) = "active_call/$contactName"
@@ -197,8 +201,8 @@ fun MestxaNavGraph(
         // 7. Core 4-Tab Screen (Chats, Updates, Communities, Calls)
         composable(Screen.Chats.route) {
             ChatsScreen(
-                onOpenChat = { _, contactName ->
-                    navController.navigate(Screen.Conversation.createRoute(contactName))
+                onOpenChat = { conversationId, contactName ->
+                    navController.navigate(Screen.Conversation.createRoute(conversationId, contactName))
                 },
                 onStartCall = { contactName ->
                     navController.navigate(Screen.ActiveCall.createRoute(contactName))
@@ -228,14 +232,22 @@ fun MestxaNavGraph(
         composable(
             route = Screen.Conversation.route,
             arguments = listOf(
+                navArgument("conversationId") {
+                    type = NavType.StringType
+                    defaultValue = ""
+                },
                 navArgument("contactName") {
                     type = NavType.StringType
                     defaultValue = "Contact"
                 }
             )
         ) { backStackEntry ->
-            val contactName = backStackEntry.arguments?.getString("contactName") ?: "Contact"
+            val rawId = backStackEntry.arguments?.getString("conversationId") ?: ""
+            val rawName = backStackEntry.arguments?.getString("contactName") ?: "Contact"
+            val conversationId = java.net.URLDecoder.decode(rawId, "UTF-8")
+            val contactName = java.net.URLDecoder.decode(rawName, "UTF-8")
             ConversationScreen(
+                conversationId = conversationId,
                 contactName = contactName,
                 onBack = {
                     navController.popBackStack()
@@ -404,8 +416,8 @@ fun MestxaNavGraph(
                 onBack = {
                     navController.popBackStack()
                 },
-                onOpenChat = { _, contactName ->
-                    navController.navigate(Screen.Conversation.createRoute(contactName))
+                onOpenChat = { conversationId, contactName ->
+                    navController.navigate(Screen.Conversation.createRoute(conversationId, contactName))
                 }
             )
         }

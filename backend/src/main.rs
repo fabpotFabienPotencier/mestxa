@@ -275,13 +275,15 @@ async fn fetch_prekeys_handler(
     Path(target): Path<String>,
     State(state): State<Arc<AppState>>,
 ) -> impl IntoResponse {
-    let user_hex = if target.starts_with('@') {
-        match state.prekeys.resolve_username(&target).await {
-            Ok(Some(hex)) => hex,
-            _ => return (StatusCode::NOT_FOUND, "Username not found").into_response(),
-        }
+    let clean_target = target.trim();
+    let user_hex = if clean_target.len() == 64 && hex::decode(clean_target).is_ok() {
+        clean_target.to_lowercase()
+    } else if let Ok(Some(hex)) = state.prekeys.resolve_username(clean_target).await {
+        hex
+    } else if let Ok(Some(entry)) = state.directory.lookup(clean_target).await {
+        entry.user_hex
     } else {
-        target
+        return (StatusCode::NOT_FOUND, "User prekeys not found").into_response();
     };
 
     match state.prekeys.fetch_bundle(&user_hex).await {

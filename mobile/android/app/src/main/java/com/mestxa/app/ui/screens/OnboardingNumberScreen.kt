@@ -185,34 +185,7 @@ fun OnboardingNumberScreen(
                 color = TextPrimary
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Country chip
-            Row(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(SurfaceDark)
-                    .border(1.dp, BorderHairline, RoundedCornerShape(20.dp))
-                    .clickable { showCountryPicker = true }
-                    .padding(horizontal = 14.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "${currentCountryInfo.flagEmoji}  ${currentCountryInfo.name} (+${currentCountryInfo.callingCode})",
-                    color = TextPrimary,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Icon(
-                    imageVector = Icons.Default.KeyboardArrowDown,
-                    contentDescription = "Change country",
-                    tint = TextSecondary,
-                    modifier = Modifier.size(18.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             if (isLoading) {
                 Box(
@@ -244,7 +217,7 @@ fun OnboardingNumberScreen(
             } else {
                 Text(
                     text = currentOffer?.number ?: "",
-                    fontSize = 32.sp,
+                    fontSize = 30.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.sp,
                     color = TextPrimary
@@ -252,17 +225,17 @@ fun OnboardingNumberScreen(
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-                // "New number" pill button matching prototype line 1659
+                // "New number" pill button with clock icon matching prototype
                 Row(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(20.dp))
-                        .border(1.dp, BorderHairline, RoundedCornerShape(20.dp))
+                        .clip(RoundedCornerShape(15.dp))
+                        .border(1.dp, BorderHairline, RoundedCornerShape(15.dp))
                         .clickable { loadOffer(selectedCountryIso) }
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                        .padding(horizontal = 14.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Refresh,
+                        imageVector = Icons.Default.Schedule,
                         contentDescription = "New number",
                         tint = TextSecondary,
                         modifier = Modifier.size(18.dp)
@@ -270,19 +243,21 @@ fun OnboardingNumberScreen(
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "New number",
-                        fontSize = 14.sp,
+                        fontSize = 13.sp,
                         color = TextSecondary,
                         fontWeight = FontWeight.Medium
                     )
                 }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = "This is your number in the app. Share it with friends so they can find you.",
+                    fontSize = 14.sp,
+                    lineHeight = 20.sp,
+                    color = TextSecondary
+                )
             }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Text(
-                text = "This is your number in the app. Share it with friends so they can find you anywhere in the world.",
-                fontSize = 14.sp,
-                lineHeight = 20.sp,
                 color = TextSecondary
             )
         }
